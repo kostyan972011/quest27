@@ -173,7 +173,7 @@
       </div>
       <div class="turn-info">
         <div id="turnDist" class="turn-dist">--- м</div>
-        <div id="turnAction" class="turn-action">Построение пути...</div>
+        <div id="turnAction" class="turn-action">Поиск кратчайшего пути...</div>
       </div>
     </div>
 
@@ -271,7 +271,7 @@
     <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:12px;">С днем рождения, любимая! ❤️</div>
   </div>
 
-  <div class="footer-note">Quest 27 • Persistent Edition</div>
+  <div class="footer-note">Quest 27 • Shortest Route Edition</div>
 
 <script>
 const POINTS = [
@@ -383,7 +383,7 @@ let roadPolyline = null;
 let lastSpoken = "";
 let lastFetchTime = 0;
 let gpsWatchId = null;
-let isVoiceEnabled = localStorage.getItem("quest27_voice") !== "false"; // По умолчанию включен
+let isVoiceEnabled = localStorage.getItem("quest27_voice") !== "false";
 
 const SVG_ICONS = {
   straight: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>',
@@ -492,6 +492,7 @@ function getDistanceMeters(lat1, lon1, lat2, lon2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
+// Запрос кратчайшего маршрута (учитывает тропинки, дворовые проезды и скверы)
 async function updateRoadNavigation() {
   if (!userCoords || currentStep >= POINTS.length) return;
   const target = POINTS[currentStep];
@@ -508,11 +509,13 @@ async function updateRoadNavigation() {
   }
 
   const now = Date.now();
-  if (now - lastFetchTime < 3500) return;
+  if (now - lastFetchTime < 3000) return;
   lastFetchTime = now;
 
   try {
-    const res = await fetch(`https://router.project-osrm.org/route/v1/cycling/${userCoords.lon},${userCoords.lat};${target.lon},${target.lat}?overview=full&geometries=geojson&steps=true`);
+    // Режим foot + cycling по кратчайшей траектории
+    const url = `https://router.project-osrm.org/route/v1/foot/${userCoords.lon},${userCoords.lat};${target.lon},${target.lat}?overview=full&geometries=geojson&steps=true&continue_straight=false`;
+    const res = await fetch(url);
     const data = await res.json();
     
     if (data.routes && data.routes.length > 0) {
@@ -520,6 +523,7 @@ async function updateRoadNavigation() {
       const coords = route.geometry.coordinates;
       const steps = route.legs[0].steps;
 
+      // Обрезаем линию ровно на ближайшие 120 метров кратчайшего пути
       let shortPath = [[userCoords.lat, userCoords.lon]];
       let accumDist = 0;
       for (let i = 0; i < coords.length - 1; i++) {
@@ -567,7 +571,7 @@ async function updateRoadNavigation() {
     }
   } catch (e) {
     document.getElementById("turnDist").innerText = `${dTotal > 150 ? 100 : dTotal} м`;
-    document.getElementById("turnAction").innerText = "Двигайтесь по улице";
+    document.getElementById("turnAction").innerText = "Двигайтесь по кратчайшему пути";
   }
 }
 
@@ -575,7 +579,7 @@ function renderStep() {
   lastSpoken = "";
   document.getElementById("stepBadge").innerText = `Секретная цель ${currentStep + 1} из ${POINTS.length}`;
   document.getElementById("turnDist").innerText = "--- м";
-  document.getElementById("turnAction").innerText = "Построение дорожного пути...";
+  document.getElementById("turnAction").innerText = "Поиск кратчайшего пути...";
   hideAllScreens();
   document.getElementById("screenNavigation").classList.remove("hidden");
   
