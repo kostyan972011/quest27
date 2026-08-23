@@ -53,15 +53,47 @@
     margin: 10px 0;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
   }
-  .distance-box { text-align: center; margin: 10px 0; }
-  .distance-val { font-size: 38px; font-weight: 900; color: #58a6ff; font-variant-numeric: tabular-nums; }
+  
+  /* БЛОК НАВИГАЦИИ ПО ПОВОРОТАМ */
+  .nav-maneuver-box {
+    background: rgba(0, 90, 169, 0.15);
+    border: 1px solid #30363d;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .nav-arrow-icon {
+    font-size: 38px;
+    color: #58a6ff;
+    min-width: 44px;
+    text-align: center;
+  }
+  .nav-instruction {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f0f6fc;
+    line-height: 1.3;
+  }
+  .nav-instruction-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .distance-box { text-align: center; margin: 8px 0; }
+  .distance-val { font-size: 42px; font-weight: 900; color: #58a6ff; font-variant-numeric: tabular-nums; }
   .distance-label { font-size: 13px; color: var(--text-dim); }
   .q-title { font-size: 16px; font-weight: 700; line-height: 1.4; margin-bottom: 12px; }
+  
   input[type="text"], input[type="date"] {
     width: 100%; background: #0d1117; border: 1.5px solid #30363d;
     color: #fff; padding: 12px 14px; font-size: 16px; border-radius: 10px; margin-bottom: 12px; outline: none;
   }
   input:focus { border-color: #58a6ff; }
+  
   .btn {
     display: block; width: 100%; background: var(--primary); color: #fff; border: none;
     padding: 14px; font-size: 15px; font-weight: 700; border-radius: 12px; cursor: pointer; text-align: center;
@@ -90,22 +122,32 @@
 
   <div class="header">
     <h1>КОД <span>27</span></h1>
-    <div id="stepBadge" class="badge-step">Точка 1 из 6</div>
+    <div id="stepBadge" class="badge-step">Локация 1 из 6</div>
   </div>
 
-  <!-- ЭКРАН 1: НАВИГАЦИЯ -->
+  <!-- ЭКРАН 1: НАВИГАЦИЯ ПО ПОВОРОТАМ -->
   <div id="screenNavigation" class="card">
-    <div style="text-align:center; font-size:14px; color:var(--text-dim);" id="navHint">Маршрут загружается...</div>
+    
+    <!-- Инструкция по текущему маневру -->
+    <div class="nav-maneuver-box">
+      <div id="maneuverIcon" class="nav-arrow-icon">⬆</div>
+      <div>
+        <div id="maneuverText" class="nav-instruction">Построение маршрута...</div>
+        <div id="maneuverSubText" class="nav-instruction-sub">Следуйте указаниям навигатора</div>
+      </div>
+    </div>
+
     <div class="distance-box">
       <div id="distVal" class="distance-val">---</div>
-      <div class="distance-label">метров до цели</div>
+      <div class="distance-label">метров до секретной точки</div>
     </div>
-    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e;">Нажмите кнопку ниже для запроса GPS</div>
-    <button class="btn btn-primary" style="margin-top:8px; padding:10px;" onclick="requestLocationPermission()">📡 Включить радар GPS</button>
+    
+    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin-bottom:8px;">Спутники GPS активны</div>
+    <button class="btn btn-primary" style="padding:10px; font-size:13px;" onclick="enableAudio()">🔊 Включить голосовые подсказки</button>
     <button class="btn btn-bypass" onclick="forceArrival()">📍 Я на месте (GPS-обход)</button>
   </div>
 
-  <!-- ЭКРАН 2: ВОПРОС -->
+  <!-- ЭКРАН 2: ВОПРОС ПО ПРИБЫТИЮ -->
   <div id="screenQuestion" class="card hidden">
     <div id="qTitle" class="q-title"></div>
     <div id="qInputArea"></div>
@@ -115,14 +157,14 @@
 
   <!-- ЭКРАН 3: УСПЕХ -->
   <div id="screenSuccess" class="card hidden">
-    <div style="font-size:22px; text-align:center; margin-bottom:8px;">✨ Верно!</div>
+    <div style="font-size:22px; text-align:center; margin-bottom:8px;">✨ В точку!</div>
     <div id="successStory" style="font-size:13.5px; line-height:1.45; color:#c9d1d9;"></div>
     <div class="artifact-alert">
       <b>🎁 НАГРАДА:</b><br>
       1. Вытяни <b>1 карту привилегий</b> из колоды у мужа!<br>
       2. Забери <b id="artifactName">Артефакт</b> в рюкзак.
     </div>
-    <button id="nextBtn" class="btn btn-success" onclick="nextPoint()">Следующая точка ➔</button>
+    <button id="nextBtn" class="btn btn-success" onclick="nextPoint()">Следующий маршрут ➔</button>
   </div>
 
   <!-- ЭКРАН 4: ФИНАЛ: ВВОД КАРТ -->
@@ -166,31 +208,29 @@
     <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:8px;">С днем рождения, любимая! ❤️</div>
   </div>
 
-  <div class="footer-note">Quest 27 • Special Edition</div>
+  <div class="footer-note">Quest 27 • Full Stealth Navigator</div>
 
 <script>
+// Точки маршрута: полная интрига без подсказок в пути
 const POINTS = [
   {
     lat: 57.456839, lon: 42.097741,
-    hint: "Место, где всё началось... Ноябрь 2015 года",
-    question: "Какая памятная дата навсегда связала нас с этим местом?",
+    question: "Какая памятная дата и год навсегда связали нас с этим местом?",
     type: "date",
     val: ["2015-11-26", "2015-11-27", "2015-11-28", "26.11.2015", "27.11.2015", "28.11.2015"],
-    story: "Тот самый холодный ноябрьский вечер 2015 года и встреча, изменившая всё ❤️",
+    story: "Тот самый холодный ноябрьский вечер 2015 года и наша судьбоносная встреча ❤️",
     artifact: "Секретный ингредиент №1 (Бокалы)"
   },
   {
     lat: 57.444934, lon: 42.155086,
-    hint: "Место нашей первой долгой совместной прогулки...",
     question: "Это место нашей первой совместной прогулки. Вспомни, что вокруг тебя тогда особенно сильно впечатлило и запомнилось?",
     type: "text",
-    val: ["гирлянд", "огоньк"],
+    val: ["гирлянд", "огоньк", "свет"],
     story: "Именно! Те самые яркие новогодние гирлянды и огоньки ✨",
     artifact: "Секретный ингредиент №2 (Ягодная основа)"
   },
   {
     lat: 57.450475, lon: 42.122070,
-    hint: "Локация особенной нежности...",
     question: "Какое особенное и главное событие навсегда связало нас с этим местом?",
     type: "text",
     val: ["секс", "близост", "любов"],
@@ -199,17 +239,15 @@ const POINTS = [
   },
   {
     lat: 57.446619, lon: 42.117412,
-    hint: "Место экстренной спецоперации спасения...",
     question: "От кого и в каком интересном состоянии я спасал тебя на этом месте?",
     type: "text",
     val: ["полиц", "пьян", "мент"],
-    story: "Легендарное спасение от полиции в веселом состоянии! Твой щит всегда на страже 🚔",
+    story: "Легендарное спасение от полиции в веселом состоянии! Твой личный защитник 🚔",
     artifact: "Секретный ингредиент №4 (Секретный градус)"
   },
   {
     lat: 57.458609, lon: 42.107571,
-    hint: "Самое судьбоносное место для нашей семьи...",
-    question: "Какое самое знаковое событие для нашей семьи произошло на этом месте?",
+    question: "Какое самое судьбоносное событие для нашей семьи произошло на этом месте?",
     type: "text",
     val: ["беремен", "зачат", "доч", "заберем"],
     story: "Тот самый день, подаривший нам нашу прекрасную доченьку! 👶❤️",
@@ -217,7 +255,6 @@ const POINTS = [
   },
   {
     lat: 57.443025, lon: 42.179298,
-    hint: "Финальная точка с видом на воду...",
     question: "Это место нас еще ни с чем не связывает. Что мы создадим здесь прямо сейчас?",
     type: "text",
     val: ["в", "м", "к", "р", "н"],
@@ -278,35 +315,22 @@ const CARD_SUITS = [
 
 let currentStep = 0;
 let userCoords = null;
+let lastSpokenText = "";
+let lastRouteFetchTime = 0;
 
-function requestLocationPermission() {
-  if ("geolocation" in navigator) {
-    document.getElementById("gpsStatus").innerText = "Запрашиваем доступ к спутникам...";
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-        document.getElementById("gpsStatus").innerText = "GPS активен (точность: ±" + Math.round(pos.coords.accuracy) + "м)";
-        updateDistance();
-        watchGPS();
-      },
-      (err) => {
-        document.getElementById("gpsStatus").innerText = "GPS отклонен или недоступен в помещении";
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
+function speak(text) {
+  if ('speechSynthesis' in window && text !== lastSpokenText) {
+    lastSpokenText = text;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ru-RU';
+    u.rate = 1.0;
+    window.speechSynthesis.speak(u);
   }
 }
 
-function watchGPS() {
-  navigator.geolocation.watchPosition(
-    (pos) => {
-      userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-      document.getElementById("gpsStatus").innerText = "GPS активен (точность: ±" + Math.round(pos.coords.accuracy) + "м)";
-      updateDistance();
-    },
-    (err) => {},
-    { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
-  );
+function enableAudio() {
+  speak("Голосовой навигатор активирован. Следуйте по маршруту.");
 }
 
 function getDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -319,30 +343,102 @@ function getDistanceMeters(lat1, lon1, lat2, lon2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
-function updateDistance() {
-  if (currentStep >= POINTS.length) return;
+// Запрос пошагового маршрута через OSRM
+async function updateTurnByTurnRoute() {
+  if (!userCoords || currentStep >= POINTS.length) return;
   const target = POINTS[currentStep];
-  if (userCoords) {
-    const d = getDistanceMeters(userCoords.lat, userCoords.lon, target.lat, target.lon);
-    document.getElementById("distVal").innerText = d;
-    if (d <= 45) showQuestionScreen();
+  
+  const dDirect = getDistanceMeters(userCoords.lat, userCoords.lon, target.lat, target.lon);
+  document.getElementById("distVal").innerText = dDirect;
+
+  if (dDirect <= 40) {
+    showQuestionScreen();
+    return;
+  }
+
+  const now = Date.now();
+  if (now - lastRouteFetchTime < 6000) return; // раз в 6 секунд
+  lastRouteFetchTime = now;
+
+  try {
+    const url = `https://router.project-osrm.org/route/v1/biking/${userCoords.lon},${userCoords.lat};${target.lon},${target.lat}?steps=true&overview=false&language=ru`;
+    const res = await fetch(url);
+    const data = await res.json();
+    
+    if (data.routes && data.routes.length > 0) {
+      const legs = data.routes[0].legs[0];
+      const steps = legs.steps;
+      
+      // Ищем ближайший предстоящий маневр
+      let nextStep = steps.length > 1 ? steps[1] : steps[0];
+      let distToTurn = Math.round(steps[0].distance);
+      let modifier = nextStep.maneuver.modifier || "straight";
+      let streetName = nextStep.name ? `на ${nextStep.name}` : "";
+
+      let icon = "⬆";
+      let text = `Двигайтесь прямо ${distToTurn}м`;
+      let speechText = "";
+
+      if (modifier.includes("right")) {
+        icon = "⮡";
+        text = `Через ${distToTurn}м поверните направо ${streetName}`;
+        if (distToTurn < 120) speechText = `Через ${distToTurn} метров поверните направо`;
+      } else if (modifier.includes("left")) {
+        icon = "⮠";
+        text = `Через ${distToTurn}м поверните налево ${streetName}`;
+        if (distToTurn < 120) speechText = `Через ${distToTurn} метров поверните налево`;
+      } else if (modifier.includes("uturn")) {
+        icon = "⮌";
+        text = `Через ${distToTurn}м выполните разворот`;
+        if (distToTurn < 120) speechText = `Через ${distToTurn} метров развернитесь`;
+      } else {
+        icon = "⬆";
+        text = `Двигайтесь прямо ${distToTurn}м ${streetName}`;
+      }
+
+      document.getElementById("maneuverIcon").innerText = icon;
+      document.getElementById("maneuverText").innerText = text;
+      document.getElementById("maneuverSubText").innerText = `Всего до цели: ${Math.round(legs.distance)}м`;
+
+      if (speechText) speak(speechText);
+    }
+  } catch (e) {
+    // Резервный расчет по прямой
+    document.getElementById("maneuverText").innerText = "Двигайтесь по направлению к цели";
+  }
+}
+
+function initGPS() {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        document.getElementById("gpsStatus").innerText = `GPS активен (±${Math.round(pos.coords.accuracy)}м)`;
+        updateTurnByTurnRoute();
+      },
+      () => { document.getElementById("gpsStatus").innerText = "GPS ожидается..."; },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 8000 }
+    );
   }
 }
 
 function renderStep() {
-  document.getElementById("stepBadge").innerText = "Точка " + (currentStep + 1) + " из " + POINTS.length;
-  document.getElementById("navHint").innerText = POINTS[currentStep].hint;
+  lastSpokenText = "";
+  document.getElementById("stepBadge").innerText = `Секретная цель ${currentStep + 1} из ${POINTS.length}`;
   document.getElementById("distVal").innerText = "---";
+  document.getElementById("maneuverText").innerText = "Прокладываем лучший маршрут...";
+  document.getElementById("maneuverSubText").innerText = "Определение поворотов";
   document.getElementById("screenNavigation").classList.remove("hidden");
   document.getElementById("screenQuestion").classList.add("hidden");
   document.getElementById("screenSuccess").classList.add("hidden");
-  updateDistance();
+  updateTurnByTurnRoute();
 }
 
 function forceArrival() { showQuestionScreen(); }
 
 function showQuestionScreen() {
   const pt = POINTS[currentStep];
+  speak("Вы прибыли на место! Вспомните ответ на вопрос.");
   document.getElementById("screenNavigation").classList.add("hidden");
   document.getElementById("screenQuestion").classList.remove("hidden");
   document.getElementById("qTitle").innerText = pt.question;
@@ -350,7 +446,7 @@ function showQuestionScreen() {
 
   const area = document.getElementById("qInputArea");
   if (pt.type === "date") {
-    area.innerHTML = '<input type="date" id="qInputVal" value="2015-11-27">';
+    area.innerHTML = '<input type="date" id="qInputVal">';
   } else {
     area.innerHTML = '<input type="text" id="qInputVal" placeholder="Введите ответ..." autofocus>';
   }
@@ -363,9 +459,10 @@ function checkAnswer() {
   const pt = POINTS[currentStep];
   let ok = false;
   if (Array.isArray(pt.val)) {
-    ok = pt.val.some(function(kw) { return val.indexOf(kw.toLowerCase()) !== -1; });
+    ok = pt.val.some(kw => val.includes(kw.toLowerCase()));
   }
   if (ok) {
+    speak("Ответ правильный! Тяните карту привилегий.");
     document.getElementById("screenQuestion").classList.add("hidden");
     document.getElementById("screenSuccess").classList.remove("hidden");
     document.getElementById("successStory").innerText = pt.story;
@@ -374,6 +471,7 @@ function checkAnswer() {
       document.getElementById("nextBtn").innerText = "Перейти к финалу ➔";
     }
   } else {
+    speak("Неверно. Подумайте еще раз.");
     document.getElementById("qError").classList.remove("hidden");
   }
 }
@@ -385,6 +483,7 @@ function nextPoint() {
 }
 
 function showFinalScreen() {
+  speak("Все артефакты собраны! Введите номера карт привилегий.");
   document.getElementById("screenSuccess").classList.add("hidden");
   document.getElementById("screenFinal").classList.remove("hidden");
   document.getElementById("stepBadge").innerText = "Финал";
@@ -392,12 +491,13 @@ function showFinalScreen() {
   const container = document.getElementById("cardSelectors");
   container.innerHTML = "";
   for (let i = 1; i <= 5; i++) {
-    let rankOpts = CARD_RANKS.map(function(r){ return '<option value="'+r+'">'+r+'</option>'; }).join("");
-    let suitOpts = CARD_SUITS.map(function(s){ return '<option value="'+s.code+'">'+s.name+'</option>'; }).join("");
-    container.innerHTML += '<div style="display:flex; gap:8px; margin-bottom:8px;">' +
-      '<select id="rank_' + i + '" style="flex:1; background:#0d1117; color:#fff; border:1px solid #30363d; padding:10px; border-radius:8px; font-size:15px;">' + rankOpts + '</select>' +
-      '<select id="suit_' + i + '" style="flex:2; background:#0d1117; color:#fff; border:1px solid #30363d; padding:10px; border-radius:8px; font-size:15px;">' + suitOpts + '</select>' +
-      '</div>';
+    let rankOpts = CARD_RANKS.map(r => `<option value="${r}">${r}</option>`).join("");
+    let suitOpts = CARD_SUITS.map(s => `<option value="${s.code}">${s.name}</option>`).join("");
+    container.innerHTML += `
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <select id="rank_${i}" style="flex:1; background:#0d1117; color:#fff; border:1px solid #30363d; padding:10px; border-radius:8px; font-size:15px;">${rankOpts}</select>
+        <select id="suit_${i}" style="flex:2; background:#0d1117; color:#fff; border:1px solid #30363d; padding:10px; border-radius:8px; font-size:15px;">${suitOpts}</select>
+      </div>`;
   }
 }
 
@@ -405,12 +505,12 @@ function revealPrivileges() {
   const list = document.getElementById("privilegesList");
   list.innerHTML = "";
   for (let i = 1; i <= 5; i++) {
-    const r = document.getElementById("rank_" + i).value;
-    const s = document.getElementById("suit_" + i).value;
+    const r = document.getElementById(`rank_${i}`).value;
+    const s = document.getElementById(`suit_${i}`).value;
     const desc = PRIVILEGES_DB[r + s] || "Персональная привилегия";
-    let suitObj = CARD_SUITS.find(function(item){ return item.code === s; });
-    let suitName = suitObj ? suitObj.name : "";
-    list.innerHTML += '<div class="card-item"><b style="color:#58a6ff;">[' + r + ' ' + suitName + ']:</b><br>' + desc + '</div>';
+    const suitObj = CARD_SUITS.find(item => item.code === s);
+    const suitName = suitObj ? suitObj.name : "";
+    list.innerHTML += `<div class="card-item"><b style="color:#58a6ff;">[${r} ${suitName}]:</b><br>${desc}</div>`;
   }
   document.getElementById("screenFinal").classList.add("hidden");
   document.getElementById("screenPrivileges").classList.remove("hidden");
@@ -435,8 +535,8 @@ function renderAuditQ() {
   document.getElementById("auditQTitle").innerText = cur.q;
   const box = document.getElementById("auditOptions");
   box.innerHTML = "";
-  cur.options.forEach(function(opt, i) {
-    box.innerHTML += '<button class="quiz-opt" onclick="answerAudit(' + i + ')">' + opt + '</button>';
+  cur.options.forEach((opt, i) => {
+    box.innerHTML += `<button class="quiz-opt" onclick="answerAudit(${i})">${opt}</button>`;
   });
 }
 
@@ -445,6 +545,7 @@ function answerAudit(choice) {
     auditIdx++;
     if (auditIdx < AUDIT_QUESTIONS.length) renderAuditQ();
     else {
+      speak("Аттестация пройдена на отлично! Получите ваш рецепт в сумке.");
       document.getElementById("screenAudit").classList.add("hidden");
       document.getElementById("screenPrescription").classList.remove("hidden");
     }
@@ -455,7 +556,7 @@ function answerAudit(choice) {
 
 window.onload = function() {
   renderStep();
-  requestLocationPermission();
+  initGPS();
 };
 </script>
 </body>
