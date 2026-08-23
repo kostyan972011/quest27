@@ -145,8 +145,6 @@
 
   <!-- ЭКРАН 1: НАВИГАЦИЯ -->
   <div id="screenNavigation" class="card">
-    
-    <!-- Панель маневра -->
     <div class="turn-hud">
       <div id="turnSvg" class="turn-svg-box">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
@@ -157,7 +155,6 @@
       </div>
     </div>
 
-    <!-- Карта с уличной линией -->
     <div id="map"></div>
     
     <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin-bottom:6px;">Спутники GPS активны</div>
@@ -226,7 +223,7 @@
     <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:8px;">С днем рождения, любимая! ❤️</div>
   </div>
 
-  <div class="footer-note">Quest 27 • Road Routing Engine</div>
+  <div class="footer-note">Quest 27 • Fresh Input Edition</div>
 
 <script>
 const POINTS = [
@@ -386,7 +383,6 @@ function getDistanceMeters(lat1, lon1, lat2, lon2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
-// Запрос реальной дорожной сети через OSRM
 async function updateRoadNavigation() {
   if (!userCoords || currentStep >= POINTS.length) return;
   const target = POINTS[currentStep];
@@ -412,10 +408,9 @@ async function updateRoadNavigation() {
     
     if (data.routes && data.routes.length > 0) {
       const route = data.routes[0];
-      const coords = route.geometry.coordinates; // [lon, lat]
+      const coords = route.geometry.coordinates;
       const steps = route.legs[0].steps;
 
-      // Отрезаем линию дорог ровно на 120 метров вперед от нас (чтобы не показывать весь маршрут)
       let shortPath = [[userCoords.lat, userCoords.lon]];
       let accumDist = 0;
       for (let i = 0; i < coords.length - 1; i++) {
@@ -434,7 +429,6 @@ async function updateRoadNavigation() {
         }).addTo(map);
       }
 
-      // Определяем ближайший маневр
       let nextStep = steps.length > 1 ? steps[1] : steps[0];
       let distToTurn = Math.round(steps[0].distance);
       let modifier = (nextStep.maneuver && nextStep.maneuver.modifier) || "straight";
@@ -463,7 +457,6 @@ async function updateRoadNavigation() {
       }
     }
   } catch (e) {
-    // В случае оффлайна - ведем по направлению
     document.getElementById("turnDist").innerText = `${dTotal > 150 ? 100 : dTotal} м`;
     document.getElementById("turnAction").innerText = "Двигайтесь по улице";
   }
@@ -509,12 +502,22 @@ function showQuestionScreen() {
   document.getElementById("qTitle").innerText = pt.question;
   document.getElementById("qError").classList.add("hidden");
 
+  // Полная принудительная очистка и создание чистого поля ввода
   const area = document.getElementById("qInputArea");
   if (pt.type === "date") {
-    area.innerHTML = '<input type="date" id="qInputVal">';
+    area.innerHTML = '<input type="date" id="qInputVal" autocomplete="off">';
   } else {
-    area.innerHTML = '<input type="text" id="qInputVal" placeholder="Введите ответ..." autofocus>';
+    area.innerHTML = '<input type="text" id="qInputVal" placeholder="Введите ответ..." autocomplete="off" autofocus>';
   }
+  
+  // Дополнительная гарантия сброса значения
+  setTimeout(() => {
+    const inputEl = document.getElementById("qInputVal");
+    if (inputEl) {
+      inputEl.value = "";
+      inputEl.focus();
+    }
+  }, 50);
 }
 
 function checkAnswer() {
