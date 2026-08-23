@@ -227,7 +227,6 @@
     70% { transform: scale(1); }
   }
 
-  /* ГАЛЕРЕЯ И КОЛЛАЖ */
   .collage-preview {
     width: 100%;
     border-radius: 12px;
@@ -261,7 +260,6 @@
     <div id="stepBadge" class="badge-step">Секретная цель 1 из 6</div>
   </div>
 
-  <!-- ЖИВАЯ СТАТИСТИКА МАРШРУТА -->
   <div id="statsBar" class="stats-bar">
     <div class="stats-item">⏱ <b id="statTime">00:00</b></div>
     <div class="stats-item">🚴 <b id="statDist">0.0</b> км</div>
@@ -311,7 +309,6 @@
       2. Забери <b id="artifactName">Артефакт</b> в рюкзак.
     </div>
 
-    <!-- КНОПКА СЕЛФИ НА ПАМЯТЬ -->
     <label class="btn-photo">
       📸 Сделать фото на память в этой точке
       <input type="file" accept="image/*" capture="camera" style="display:none;" onchange="saveMemoryPhoto(event)">
@@ -415,7 +412,6 @@
     <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:14px;">С днем рождения, любимая! ❤️</div>
   </div>
 
-  <!-- Скрытые холсты для генерации -->
   <canvas id="certCanvas" width="1080" height="1920" style="display:none;"></canvas>
   <canvas id="collageCanvas" width="1080" height="1920" style="display:none;"></canvas>
 
@@ -584,37 +580,80 @@ function startStatsTicker() {
   }, 1000);
 }
 
+// Сжатие фото перед сохранением в localStorage (обход 5МБ лимита Safari)
+function compressAndSavePhoto(file, callback) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const maxDim = 800;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      const compressedDataUrl = c.toDataURL("image/jpeg", 0.75);
+      callback(compressedDataUrl);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function saveMemoryPhoto(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const photoBase64 = e.target.result;
-    let photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]");
-    
-    // Перезаписываем фото для этой точки если уже было, или добавляем
-    photos = photos.filter(p => p.step !== (currentStep + 1));
+  compressAndSavePhoto(file, (compressedBase64) => {
+    let photos = [];
+    try {
+      photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]");
+    } catch (e) {
+      photos = [];
+    }
+
+    const stepNum = currentStep + 1;
+    photos = photos.filter(p => p.step !== stepNum);
     photos.push({
-      step: currentStep + 1,
-      src: photoBase64,
-      tag: POINTS[currentStep].tag || `Локация №${currentStep + 1}`,
+      step: stepNum,
+      src: compressedBase64,
+      tag: (POINTS[currentStep] && POINTS[currentStep].tag) || `Локация №${stepNum}`,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     });
-    localStorage.setItem("quest27_photos", JSON.stringify(photos));
+
+    try {
+      localStorage.setItem("quest27_photos", JSON.stringify(photos));
+    } catch (err) {
+      console.warn("Storage warning, cleaning oldest photos");
+    }
 
     triggerHaptic("success");
     fireConfetti();
     const statusEl = document.getElementById("photoStatus");
     if (statusEl) statusEl.classList.remove("hidden");
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 function loadPhotoGallery() {
   const container = document.getElementById("galleryContainer");
   if (!container) return;
-  const photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]");
+  let photos = [];
+  try {
+    photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]");
+  } catch (e) {
+    photos = [];
+  }
   container.innerHTML = "";
   if (photos.length === 0) {
     container.innerHTML = `<div style="grid-column:span 2; font-size:12px; color:#8b949e; text-align:center; padding:10px;">В этой поездке фото пока не сделаны</div>`;
@@ -634,12 +673,17 @@ function openFullPhoto(src) {
   w.document.write(`<body style="margin:0; background:#000; display:flex; align-items:center; justify-content:center; height:100vh;"><img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain;"></body>`);
 }
 
-// ГЕНЕРАТОР ХАОТИЧНОГО POLAROID-КОЛЛАЖА
 async function renderCollagePoster() {
   triggerHaptic("success");
   fireConfetti();
 
-  const photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]");
+  let photos = [];
+  try {
+    photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]");
+  } catch (e) {
+    photos = [];
+  }
+
   if (photos.length === 0) {
     alert("Сначала сделайте хотя бы одно фото на точках!");
     return;
@@ -648,7 +692,6 @@ async function renderCollagePoster() {
   const canvas = document.getElementById("collageCanvas");
   const ctx = canvas.getContext("2d");
 
-  // 1. Темный премиальный фон с золотой текстурой
   const grad = ctx.createLinearGradient(0, 0, 1080, 1920);
   grad.addColorStop(0, '#090d13');
   grad.addColorStop(0.5, '#161b22');
@@ -656,14 +699,12 @@ async function renderCollagePoster() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 1080, 1920);
 
-  // 2. Золотая двойная рамка
   ctx.strokeStyle = '#d29922';
   ctx.lineWidth = 8;
   ctx.strokeRect(40, 40, 1000, 1840);
   ctx.lineWidth = 2;
   ctx.strokeRect(55, 55, 970, 1810);
 
-  // 3. Заголовок постера
   ctx.textAlign = 'center';
   ctx.fillStyle = '#d29922';
   ctx.font = 'bold 54px -apple-system, BlinkMacSystemFont, Arial';
@@ -680,7 +721,6 @@ async function renderCollagePoster() {
   ctx.lineTo(940, 260);
   ctx.stroke();
 
-  // Координаты и углы наклона для 6 полароидов
   const polaroids = [
     { x: 280, y: 530, angle: -0.10 },
     { x: 780, y: 500, angle: 0.08 },
@@ -690,7 +730,6 @@ async function renderCollagePoster() {
     { x: 790, y: 1530, angle: 0.08 }
   ];
 
-  // Загрузка изображений
   const loadImage = (src) => new Promise((resolve) => {
     const img = new Image();
     img.onload = () => resolve(img);
@@ -706,23 +745,18 @@ async function renderCollagePoster() {
     ctx.translate(pos.x, pos.y);
     ctx.rotate(pos.angle);
 
-    // Тень под Polaroid
     ctx.shadowColor = 'rgba(0,0,0,0.65)';
     ctx.shadowBlur = 24;
     ctx.shadowOffsetX = 8;
     ctx.shadowOffsetY = 12;
 
-    // Белая рамка Polaroid
     ctx.fillStyle = '#f6f8fa';
     ctx.fillRect(-200, -200, 400, 460);
 
-    // Сброс тени для фото
     ctx.shadowColor = 'transparent';
 
-    // Само фото
     ctx.drawImage(img, -175, -175, 350, 350);
 
-    // Подпись на Polaroid внизу
     ctx.fillStyle = '#24292f';
     ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, Arial';
     ctx.textAlign = 'center';
@@ -731,13 +765,11 @@ async function renderCollagePoster() {
     ctx.restore();
   }
 
-  // Нижняя печать
   ctx.fillStyle = '#8b949e';
   ctx.font = '24px -apple-system, BlinkMacSystemFont, Arial';
   ctx.textAlign = 'center';
   ctx.fillText('С любовью и навсегда • Твой муж ❤️', 540, 1835);
 
-  // Отображаем превью и делимся
   const preview = document.getElementById("collagePreviewImg");
   const dataUrl = canvas.toDataURL('image/png');
   preview.src = dataUrl;
