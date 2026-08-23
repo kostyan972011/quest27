@@ -227,13 +227,20 @@
     70% { transform: scale(1); }
   }
 
+  .collage-preview-box {
+    margin-top: 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+  }
   .collage-preview {
     width: 100%;
-    border-radius: 12px;
-    border: 2px solid #d29922;
-    margin: 10px 0;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    border-radius: 8px;
+    border: 1.5px solid #d29922;
     display: block;
+    margin-bottom: 8px;
   }
   .gallery-grid {
     display: grid;
@@ -311,9 +318,13 @@
 
     <label class="btn-photo">
       📸 Сделать фото на память в этой точке
-      <input type="file" accept="image/*" capture="camera" style="display:none;" onchange="saveMemoryPhoto(event)">
+      <input type="file" id="cameraInput" accept="image/*" capture="camera" style="display:none;" onchange="handlePhotoUpload(event)">
     </label>
-    <div id="photoStatus" style="font-size:11.5px; color:#3fb950; text-align:center; margin-bottom:6px;" class="hidden">✓ Исходное фото сохранено в медиатеку!</div>
+    
+    <div id="photoActionBox" class="hidden" style="margin-bottom:8px;">
+      <div style="font-size:12px; color:#3fb950; text-align:center; font-weight:bold; margin-bottom:4px;">✓ Фото готово!</div>
+      <button class="btn btn-gold" style="padding:10px; font-size:13px;" onclick="saveDirectPhotoToDevice()">💾 Сохранить оригинал фото в «Фото»</button>
+    </div>
 
     <button id="nextBtn" class="btn btn-success" onclick="nextPoint()">Следующий маршрут ➔</button>
   </div>
@@ -333,8 +344,12 @@
 
     <label class="btn-photo">
       📸 Фото с готовым коктейлем 27
-      <input type="file" accept="image/*" capture="camera" style="display:none;" onchange="saveMemoryPhoto(event)">
+      <input type="file" accept="image/*" capture="camera" style="display:none;" onchange="handlePhotoUpload(event)">
     </label>
+
+    <div id="cocktailPhotoActionBox" class="hidden" style="margin-bottom:8px;">
+      <button class="btn btn-gold" style="padding:10px; font-size:13px;" onclick="saveDirectPhotoToDevice()">💾 Сохранить оригинал фото в «Фото»</button>
+    </div>
 
     <button class="btn btn-success" style="margin-top:10px;" onclick="showCardInputScreen()">🍸 Коктейль готов! Перейти к картам ➔</button>
   </div>
@@ -355,7 +370,13 @@
     <div style="font-size:12px; color:var(--text-dim); margin-bottom:10px; text-align:center;">Отмечай галочками выполненные привилегии:</div>
     <div id="privilegesList"></div>
     
-    <button class="btn btn-gold" style="margin-top:12px;" onclick="generateCertificate()">📜 Сохранить Сертификат в галерею</button>
+    <button class="btn btn-gold" style="margin-top:12px;" onclick="generateCertificate()">📜 Сертификат привилегий (Галерея)</button>
+    <div id="certActionBox" class="collage-preview-box hidden">
+      <img id="certPreviewImg" class="collage-preview" alt="Сертификат">
+      <div style="font-size:11px; color:#8b949e; margin-bottom:6px;">Зажмите фото пальцем $\rightarrow$ выберите «Сохранить в Фото»</div>
+      <button class="btn btn-primary" style="padding:10px; font-size:13px;" onclick="shareCertFile()">📤 Поделиться сертификатом</button>
+    </div>
+
     <button class="btn btn-accent" id="btnGoToAudit" style="margin-top:10px;" onclick="startAudit()">Пройти аттестацию ➔</button>
     <button class="btn btn-bypass" id="btnBackToPrescription" style="margin-top:10px; font-size:12px;" onclick="showPrescriptionScreen()">🩺 Вернуться к рецепту</button>
 
@@ -400,8 +421,13 @@
 
     <!-- ПАМЯТНЫЙ ФОТОАЛЬБОМ И КОЛЛАЖ -->
     <div style="margin-top:16px;">
-      <button class="btn btn-gold" onclick="renderCollagePoster()">🖼 Создать и скачать Фотоколлаж дня</button>
-      <img id="collagePreviewImg" class="collage-preview hidden" alt="Коллаж">
+      <button class="btn btn-gold" onclick="renderCollagePoster()">🖼 Создать Фотоколлаж дня</button>
+      
+      <div id="collageActionBox" class="collage-preview-box hidden">
+        <img id="collagePreviewImg" class="collage-preview" alt="Коллаж">
+        <div style="font-size:11px; color:#8b949e; margin-bottom:6px;">Зажмите фото пальцем $\rightarrow$ «Сохранить в Фото»</div>
+        <button class="btn btn-primary" style="padding:10px; font-size:13px; margin-bottom:6px;" onclick="shareCollageFile()">📤 Поделиться коллажем</button>
+      </div>
       
       <details style="margin-top:10px;">
         <summary style="font-size:12.5px; color:#58a6ff; cursor:pointer; font-weight:700; text-align:center;">📸 Посмотреть отдельные фотографии</summary>
@@ -415,7 +441,7 @@
   <canvas id="certCanvas" width="1080" height="1920" style="display:none;"></canvas>
   <canvas id="collageCanvas" width="1080" height="1920" style="display:none;"></canvas>
 
-  <div class="footer-note">Quest 27 • Collage & Memorial Edition</div>
+  <div class="footer-note">Quest 27 • Guaranteed Save Edition</div>
 
 <script>
 const POINTS = [
@@ -548,6 +574,9 @@ let lastFetchTime = 0;
 let gpsWatchId = null;
 let isVoiceEnabled = localStorage.getItem("quest27_voice") !== "false";
 let wakeLockSentinel = null;
+let currentUploadedRawFile = null;
+let currentCollageBlob = null;
+let currentCertBlob = null;
 
 const SVG_ICONS = {
   straight: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>',
@@ -580,102 +609,82 @@ function startStatsTicker() {
   }, 1000);
 }
 
-// 1. Немедленное сохранение исходного файла на телефон (БЕЗ СЖАТИЯ)
-function saveOriginalFileToDevice(file) {
-  const originalFileName = `Код27_Локация_${currentStep + 1}_Оригинал.jpg`;
-  const originalFile = new File([file], originalFileName, { type: file.type || 'image/jpeg' });
+// ОБРАБОТКА ФОТОСНИМКА (Сохранение в стейт + сжатие для альбома)
+function handlePhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
 
-  if (navigator.canShare && navigator.canShare({ files: [originalFile] })) {
-    navigator.share({
-      title: `Фото с квеста Код 27 (Локация №${currentStep + 1})`,
-      files: [originalFile]
-    }).catch(() => {});
-  } else {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(file);
-    a.download = originalFileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-}
+  currentUploadedRawFile = file;
 
-// 2. Создание легкой копии исключительно для веб-галереи и коллажа
-function createWebThumbnail(file, callback) {
+  // 1. Показываем кнопку прямого скачивания/сохранения
+  const box1 = document.getElementById("photoActionBox");
+  const box2 = document.getElementById("cocktailPhotoActionBox");
+  if (box1) box1.classList.remove("hidden");
+  if (box2) box2.classList.remove("hidden");
+
+  // 2. Сжимаем миниатюру для веб-альбома и коллажа
   const reader = new FileReader();
   reader.onload = function(e) {
     const img = new Image();
     img.onload = function() {
       const maxDim = 800;
-      let w = img.width;
-      let h = img.height;
+      let w = img.width, h = img.height;
       if (w > maxDim || h > maxDim) {
-        if (w > h) {
-          h = Math.round((h * maxDim) / w);
-          w = maxDim;
-        } else {
-          w = Math.round((w * maxDim) / h);
-          h = maxDim;
-        }
+        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+        else { w = Math.round((w * maxDim) / h); h = maxDim; }
       }
       const c = document.createElement("canvas");
-      c.width = w;
-      c.height = h;
+      c.width = w; c.height = h;
       const ctx = c.getContext("2d");
       ctx.drawImage(img, 0, 0, w, h);
-      const thumbnailDataUrl = c.toDataURL("image/jpeg", 0.75);
-      callback(thumbnailDataUrl);
+      const thumb = c.toDataURL("image/jpeg", 0.75);
+
+      let photos = [];
+      try { photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]"); } catch (err) {}
+      
+      const stepNum = currentStep + 1;
+      photos = photos.filter(p => p.step !== stepNum);
+      photos.push({
+        step: stepNum,
+        src: thumb,
+        tag: (POINTS[currentStep] && POINTS[currentStep].tag) || `Локация №${stepNum}`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+      localStorage.setItem("quest27_photos", JSON.stringify(photos));
     };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
+
+  triggerHaptic("success");
+  fireConfetti();
 }
 
-function saveMemoryPhoto(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+// ПРЯМОЕ СОХРАНЕНИЕ ОРИГИНАЛА ФОТО ПО КНОПКЕ
+function saveDirectPhotoToDevice() {
+  if (!currentUploadedRawFile) return;
+  const fileName = `Код27_Локация_${currentStep + 1}_Оригинал.jpg`;
+  const file = new File([currentUploadedRawFile], fileName, { type: currentUploadedRawFile.type || 'image/jpeg' });
 
-  // 1. Сохраняем нетронутый оригинал в галерею смартфона
-  saveOriginalFileToDevice(file);
-
-  // 2. Делаем миниатюру для внутреннего хранилища квеста
-  createWebThumbnail(file, (thumbnailBase64) => {
-    let photos = [];
-    try {
-      photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]");
-    } catch (e) {
-      photos = [];
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ title: 'Фото с квеста Код 27', files: [file] }).catch(() => {});
+  } else {
+    const url = URL.createObjectURL(currentUploadedRawFile);
+    const w = window.open(url, '_blank');
+    if (!w) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
     }
-
-    const stepNum = currentStep + 1;
-    photos = photos.filter(p => p.step !== stepNum);
-    photos.push({
-      step: stepNum,
-      src: thumbnailBase64,
-      tag: (POINTS[currentStep] && POINTS[currentStep].tag) || `Локация №${stepNum}`,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    });
-
-    try {
-      localStorage.setItem("quest27_photos", JSON.stringify(photos));
-    } catch (err) {}
-
-    triggerHaptic("success");
-    fireConfetti();
-    const statusEl = document.getElementById("photoStatus");
-    if (statusEl) statusEl.classList.remove("hidden");
-  });
+  }
 }
 
 function loadPhotoGallery() {
   const container = document.getElementById("galleryContainer");
   if (!container) return;
   let photos = [];
-  try {
-    photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]");
-  } catch (e) {
-    photos = [];
-  }
+  try { photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]"); } catch (e) {}
   container.innerHTML = "";
   if (photos.length === 0) {
     container.innerHTML = `<div style="grid-column:span 2; font-size:12px; color:#8b949e; text-align:center; padding:10px;">В этой поездке фото пока не сделаны</div>`;
@@ -692,22 +701,21 @@ function loadPhotoGallery() {
 
 function openFullPhoto(src) {
   const w = window.open("");
-  w.document.write(`<body style="margin:0; background:#000; display:flex; align-items:center; justify-content:center; height:100vh;"><img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain;"></body>`);
+  if (w) {
+    w.document.write(`<body style="margin:0; background:#000; display:flex; align-items:center; justify-content:center; height:100vh;"><img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain;"></body>`);
+  }
 }
 
+// ГЕНЕРАЦИЯ И ОТОБРАЖЕНИЕ КОЛЛАЖА
 async function renderCollagePoster() {
   triggerHaptic("success");
   fireConfetti();
 
   let photos = [];
-  try {
-    photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]");
-  } catch (e) {
-    photos = [];
-  }
+  try { photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]"); } catch (e) {}
 
   if (photos.length === 0) {
-    alert("Сначала сделайте хотя бы одно фото на точках!");
+    alert("Сделайте фото на точках, чтобы собрать памятный коллаж!");
     return;
   }
 
@@ -776,7 +784,6 @@ async function renderCollagePoster() {
     ctx.fillRect(-200, -200, 400, 460);
 
     ctx.shadowColor = 'transparent';
-
     ctx.drawImage(img, -175, -175, 350, 350);
 
     ctx.fillStyle = '#24292f';
@@ -792,26 +799,149 @@ async function renderCollagePoster() {
   ctx.textAlign = 'center';
   ctx.fillText('С любовью и навсегда • Твой муж ❤️', 540, 1835);
 
-  const preview = document.getElementById("collagePreviewImg");
   const dataUrl = canvas.toDataURL('image/png');
+  const preview = document.getElementById("collagePreviewImg");
   preview.src = dataUrl;
-  preview.classList.remove("hidden");
+  document.getElementById("collageActionBox").classList.remove("hidden");
 
   canvas.toBlob(blob => {
-    const file = new File([blob], 'Коллаж_Код_27.png', { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({
-        title: 'Коллаж Код 27',
-        text: 'Наш праздничный фотоколлаж квеста Код 27! 🎁',
-        files: [file]
-      });
-    } else {
-      const a = document.createElement('a');
-      a.download = 'Коллаж_Код_27.png';
-      a.href = dataUrl;
-      a.click();
-    }
+    currentCollageBlob = blob;
   }, 'image/png');
+}
+
+function shareCollageFile() {
+  if (!currentCollageBlob) return;
+  const file = new File([currentCollageBlob], 'Коллаж_Код_27.png', { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ title: 'Коллаж Код 27', files: [file] }).catch(() => {});
+  } else {
+    const a = document.createElement('a');
+    a.download = 'Коллаж_Код_27.png';
+    a.href = URL.createObjectURL(currentCollageBlob);
+    a.click();
+  }
+}
+
+function generateCertificate() {
+  triggerHaptic("success");
+  fireConfetti();
+  
+  const savedCards = JSON.parse(localStorage.getItem("quest27_cards") || "[]");
+  if (savedCards.length === 0) return;
+
+  const canvas = document.getElementById("certCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const grad = ctx.createLinearGradient(0, 0, 1080, 1920);
+  grad.addColorStop(0, '#0d1117');
+  grad.addColorStop(0.5, '#161b22');
+  grad.addColorStop(1, '#090d13');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1080, 1920);
+
+  ctx.strokeStyle = '#d29922';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(50, 50, 980, 1820);
+  ctx.lineWidth = 3;
+  ctx.strokeRect(70, 70, 940, 1780);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#d29922';
+  ctx.font = 'bold 54px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText('СЕРТИФИКАТ ПРИВИЛЕГИЙ', 540, 270);
+
+  ctx.fillStyle = '#f0f6fc';
+  ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText('В ЧЕСТЬ 27-ЛЕТИЯ ЛЮБИМОЙ', 540, 340);
+
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(140, 400);
+  ctx.lineTo(940, 400);
+  ctx.stroke();
+
+  function drawRoundedCard(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fillStyle = '#1c2128';
+    ctx.fill();
+    ctx.strokeStyle = '#30363d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  let startY = 460;
+  savedCards.forEach((code, i) => {
+    const desc = PRIVILEGES_DB[code] || "Персональное желание";
+
+    drawRoundedCard(120, startY, 840, 180, 20);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#58a6ff';
+    ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, Arial';
+    ctx.fillText(`Привилегия №${i + 1}`, 160, startY + 65);
+
+    ctx.fillStyle = '#f0f6fc';
+    ctx.font = '30px -apple-system, BlinkMacSystemFont, Arial';
+    
+    if (desc.length > 40) {
+      ctx.fillText(desc.substring(0, 38) + '...', 160, startY + 125);
+    } else {
+      ctx.fillText(desc, 160, startY + 125);
+    }
+
+    startY += 225;
+  });
+
+  ctx.strokeStyle = '#d29922';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(300, 1690, 80, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  ctx.fillStyle = '#d29922';
+  ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('ГАРАНТИЯ', 300, 1680);
+  ctx.fillText('МУЖА ❤️', 300, 1710);
+
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '26px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.textAlign = 'right';
+  ctx.fillText('Действителен бессрочно', 940, 1680);
+  ctx.fillText('Квест «Код 27» • 25.08.2026', 940, 1720);
+
+  const dataUrl = canvas.toDataURL('image/png');
+  const preview = document.getElementById("certPreviewImg");
+  preview.src = dataUrl;
+  document.getElementById("certActionBox").classList.remove("hidden");
+
+  canvas.toBlob(blob => {
+    currentCertBlob = blob;
+  }, 'image/png');
+}
+
+function shareCertFile() {
+  if (!currentCertBlob) return;
+  const file = new File([currentCertBlob], 'Сертификат_Код_27.png', { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ title: 'Сертификат Код 27', files: [file] }).catch(() => {});
+  } else {
+    const a = document.createElement('a');
+    a.download = 'Сертификат_Код_27.png';
+    a.href = URL.createObjectURL(currentCertBlob);
+    a.click();
+  }
 }
 
 function playLoveAudio() {
@@ -1108,8 +1238,11 @@ function checkAnswer() {
     speak("Ответ верный!");
     hideAllScreens();
 
-    const photoStatus = document.getElementById("photoStatus");
-    if (photoStatus) photoStatus.classList.add("hidden");
+    currentUploadedRawFile = null;
+    const box1 = document.getElementById("photoActionBox");
+    const box2 = document.getElementById("cocktailPhotoActionBox");
+    if (box1) box1.classList.add("hidden");
+    if (box2) box2.classList.add("hidden");
 
     if (currentStep === POINTS.length - 1) {
       document.getElementById("screenCocktail").classList.remove("hidden");
@@ -1258,122 +1391,6 @@ function showPrescriptionScreen() {
   document.getElementById("screenPrescription").classList.remove("hidden");
   document.getElementById("stepBadge").innerText = "Назначение";
   loadPhotoGallery();
-}
-
-function generateCertificate() {
-  triggerHaptic("success");
-  fireConfetti();
-  
-  const savedCards = JSON.parse(localStorage.getItem("quest27_cards") || "[]");
-  if (savedCards.length === 0) return;
-
-  const canvas = document.getElementById("certCanvas");
-  const ctx = canvas.getContext("2d");
-
-  const grad = ctx.createLinearGradient(0, 0, 1080, 1920);
-  grad.addColorStop(0, '#0d1117');
-  grad.addColorStop(0.5, '#161b22');
-  grad.addColorStop(1, '#090d13');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1080, 1920);
-
-  ctx.strokeStyle = '#d29922';
-  ctx.lineWidth = 10;
-  ctx.strokeRect(50, 50, 980, 1820);
-  ctx.lineWidth = 3;
-  ctx.strokeRect(70, 70, 940, 1780);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#d29922';
-  ctx.font = 'bold 54px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.fillText('СЕРТИФИКАТ ПРИВИЛЕГИЙ', 540, 270);
-
-  ctx.fillStyle = '#f0f6fc';
-  ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.fillText('В ЧЕСТЬ 27-ЛЕТИЯ ЛЮБИМОЙ', 540, 340);
-
-  ctx.strokeStyle = '#30363d';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(140, 400);
-  ctx.lineTo(940, 400);
-  ctx.stroke();
-
-  function drawRoundedCard(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-    ctx.fillStyle = '#1c2128';
-    ctx.fill();
-    ctx.strokeStyle = '#30363d';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  let startY = 460;
-  savedCards.forEach((code, i) => {
-    const desc = PRIVILEGES_DB[code] || "Персональное желание";
-
-    drawRoundedCard(120, startY, 840, 180, 20);
-
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#58a6ff';
-    ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, Arial';
-    ctx.fillText(`Привилегия №${i + 1}`, 160, startY + 65);
-
-    ctx.fillStyle = '#f0f6fc';
-    ctx.font = '30px -apple-system, BlinkMacSystemFont, Arial';
-    
-    if (desc.length > 40) {
-      ctx.fillText(desc.substring(0, 38) + '...', 160, startY + 125);
-    } else {
-      ctx.fillText(desc, 160, startY + 125);
-    }
-
-    startY += 225;
-  });
-
-  ctx.strokeStyle = '#d29922';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.arc(300, 1690, 80, 0, Math.PI * 2);
-  ctx.stroke();
-  
-  ctx.fillStyle = '#d29922';
-  ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('ГАРАНТИЯ', 300, 1680);
-  ctx.fillText('МУЖА ❤️', 300, 1710);
-
-  ctx.fillStyle = '#8b949e';
-  ctx.font = '26px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.textAlign = 'right';
-  ctx.fillText('Действителен бессрочно', 940, 1680);
-  ctx.fillText('Квест «Код 27» • 25.08.2026', 940, 1720);
-
-  canvas.toBlob(blob => {
-    const file = new File([blob], 'Сертификат_Код_27.png', { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({
-        title: 'Сертификат Привилегий Код 27',
-        text: 'Мой праздничный сертификат привилегий в честь 27-летия! 🎉',
-        files: [file]
-      });
-    } else {
-      const a = document.createElement('a');
-      a.download = 'Сертификат_Код_27.png';
-      a.href = canvas.toDataURL('image/png');
-      a.click();
-    }
-  }, 'image/png');
 }
 
 const AUDIT_QUESTIONS = [
