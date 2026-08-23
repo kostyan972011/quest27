@@ -10,7 +10,6 @@
 <meta name="theme-color" content="#0d1117">
 <title>Код 27</title>
 
-<!-- Карта Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -154,7 +153,6 @@
     <div id="stepBadge" class="badge-step">Секретная цель 1 из 6</div>
   </div>
 
-  <!-- ЭКРАН 1: НАВИГАЦИЯ -->
   <div id="screenNavigation" class="card">
     <div class="turn-hud">
       <div id="turnSvg" class="turn-svg-box">
@@ -173,7 +171,6 @@
     <button class="btn btn-bypass" onclick="forceArrival()">📍 Я на месте (GPS-обход)</button>
   </div>
 
-  <!-- ЭКРАН 2: ВОПРОС ПО ПРИБЫТИЮ -->
   <div id="screenQuestion" class="card hidden">
     <div id="qTitle" class="q-title"></div>
     <div id="qInputArea"></div>
@@ -181,7 +178,6 @@
     <button class="btn btn-accent" onclick="checkAnswer()">Подтвердить ответ</button>
   </div>
 
-  <!-- ЭКРАН 3: УСПЕХ ТОЧКИ 1-5 -->
   <div id="screenSuccess" class="card hidden">
     <div style="font-size:22px; text-align:center; margin-bottom:8px;">✨ Верно!</div>
     <div id="successStory" style="font-size:13.5px; line-height:1.45; color:#c9d1d9;"></div>
@@ -193,7 +189,6 @@
     <button id="nextBtn" class="btn btn-success" onclick="nextPoint()">Следующий маршрут ➔</button>
   </div>
 
-  <!-- ЭКРАН 3.5: СБОРКА КОКТЕЙЛЯ 27 -->
   <div id="screenCocktail" class="card hidden">
     <div style="text-align:center; font-size:20px; font-weight:800; color:#58a6ff; margin-bottom:8px;">🍸 КОКТЕЙЛЬ «КОД 27»</div>
     <div style="font-size:13.5px; line-height:1.5; color:#c9d1d9; margin-bottom:12px;">
@@ -208,7 +203,6 @@
     <button class="btn btn-success" onclick="showCardInputScreen()">🍸 Коктейль готов! Перейти к картам ➔</button>
   </div>
 
-  <!-- ЭКРАН 4: ВВОД КАРТ -->
   <div id="screenFinal" class="card hidden">
     <div style="font-weight:800; font-size:17px; margin-bottom:6px; text-align:center;">🃏 КАРТЫ ПРИВИЛЕГИЙ</div>
     <div style="font-size:12.5px; color:var(--text-dim); margin-bottom:12px; text-align:center;">
@@ -218,7 +212,6 @@
     <button class="btn btn-primary" style="margin-top:10px;" onclick="revealPrivileges()">Разблокировать привилегии ➔</button>
   </div>
 
-  <!-- ЭКРАН 5: СПИСОК ПРИВИЛЕГИЙ -->
   <div id="screenPrivileges" class="card hidden">
     <div style="font-size:18px; font-weight:800; color:#3fb950; margin-bottom:10px; text-align:center;">🎉 ТВОИ ПРИВИЛЕГИИ</div>
     <div style="font-size:12px; color:var(--text-dim); margin-bottom:10px; text-align:center;">Отмечай галочками выполненные привилегии:</div>
@@ -235,7 +228,6 @@
     </div>
   </div>
 
-  <!-- ЭКРАН 6: АТТЕСТАЦИЯ -->
   <div id="screenAudit" class="card hidden">
     <div style="text-align:center; font-size:11px; font-weight:bold; color:var(--accent); text-transform:uppercase; margin-bottom:4px;">Аптечная сеть «Апрель»</div>
     <div style="font-size:16px; font-weight:800; text-align:center; margin-bottom:12px;">Внеплановая аттестация провизора</div>
@@ -245,7 +237,6 @@
     </div>
   </div>
 
-  <!-- ЭКРАН 7: РЕЗУЛЬТАТ -->
   <div id="screenPrescription" class="card hidden">
     <div style="text-align:center; font-size:26px; margin-bottom:6px;">🩺 100% СДАНО!</div>
     <div style="font-size:14px; font-weight:bold; color:#3fb950; text-align:center; margin-bottom:10px;">Категория подтверждена</div>
@@ -696,7 +687,7 @@ function showPrescriptionScreen() {
 
 const AUDIT_QUESTIONS = [
   { q: "Вопрос 1/3: Какова суточная норма поцелуев мужа?", options: ["1 раз", "По расписанию", "Неограниченно, до полного снятия стресса"], correct: 2 },
-  { q: "Вопрос 2/3: Главное показание к шопингу на Ozon?", options: ["Скидки", "Плохая погода", "Наступление 25.08.2026 и 27-летие!"], correct: 2 },
+  { q: "Вопрос 2/3: Главное показание к праздничному шопингу?", options: ["Скидки", "Плохая погода", "Наступление 25.08.2026 и 27-летие!"], correct: 2 },
   { q: "Вопрос 3/3: Кто самый заботливый муж?", options: ["Тот, кто создал этот квест ❤️"], correct: 0 }
 ];
 
