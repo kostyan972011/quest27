@@ -132,7 +132,7 @@
     transition: opacity 0.2s ease;
   }
   .card-item.done {
-    opacity: 0.45; border-left-color: #30363d;
+    opacity: 0.4; border-left-color: #30363d;
   }
   .card-item.done .card-item-title, .card-item.done .card-item-desc {
     text-decoration: line-through;
@@ -643,11 +643,13 @@ function revealPrivileges() {
 }
 
 function renderPrivilegesScreen(userCards) {
-  let doneMap = {};
+  let doneArray = [];
   try {
-    doneMap = JSON.parse(localStorage.getItem("quest27_done") || "{}");
+    const raw = localStorage.getItem("quest27_done_array");
+    doneArray = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(doneArray)) doneArray = [];
   } catch (e) {
-    doneMap = {};
+    doneArray = [];
   }
 
   const list = document.getElementById("privilegesList");
@@ -659,7 +661,7 @@ function renderPrivilegesScreen(userCards) {
     const desc = PRIVILEGES_DB[code] || "Персональная привилегия";
     const suitObj = CARD_SUITS.find(item => item.code === s);
     const suitName = suitObj ? suitObj.name : "";
-    const isChecked = Boolean(doneMap[code]);
+    const isChecked = doneArray.includes(code);
 
     list.innerHTML += `
       <div class="card-item ${isChecked ? 'done' : ''}" id="card_box_${code}">
@@ -698,17 +700,24 @@ function renderPrivilegesScreen(userCards) {
 }
 
 function toggleDone(code) {
-  let doneMap = {};
+  let doneArray = [];
   try {
-    doneMap = JSON.parse(localStorage.getItem("quest27_done") || "{}");
+    const raw = localStorage.getItem("quest27_done_array");
+    doneArray = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(doneArray)) doneArray = [];
   } catch (e) {
-    doneMap = {};
+    doneArray = [];
   }
 
   const chk = document.getElementById(`chk_${code}`);
   if (chk) {
-    doneMap[code] = chk.checked;
-    localStorage.setItem("quest27_done", JSON.stringify(doneMap));
+    if (chk.checked) {
+      if (!doneArray.includes(code)) doneArray.push(code);
+    } else {
+      doneArray = doneArray.filter(item => item !== code);
+    }
+    
+    localStorage.setItem("quest27_done_array", JSON.stringify(doneArray));
 
     const el = document.getElementById(`card_box_${code}`);
     if (el) {
