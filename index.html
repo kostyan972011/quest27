@@ -115,6 +115,16 @@
   .btn:active { transform: scale(0.98); opacity: 0.9; }
   .btn-accent { background: var(--accent); }
   .btn-success { background: var(--success); }
+  .btn-toggle-voice {
+    background: #21262d;
+    color: #f0f6fc;
+    border: 1px solid #30363d;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
   .btn-bypass { background: transparent; color: var(--text-dim); border: 1px dashed #30363d; font-size: 11px; padding: 6px; margin-top: 8px; border-radius: 8px; }
   .artifact-alert {
     background: rgba(35, 134, 54, 0.15); border: 1px solid var(--success); border-radius: 12px;
@@ -171,7 +181,8 @@
     
     <div id="gpsStatus" style="font-size:12px; text-align:center; color:#58a6ff; font-weight:bold; margin-bottom:8px;">Определение координат...</div>
     
-    <button class="btn btn-primary" style="padding:12px; font-size:14px; margin-bottom:6px;" onclick="enableAudioAndGPS()">📡 Запустить радар GPS</button>
+    <button id="btnVoiceToggle" class="btn btn-toggle-voice" onclick="toggleVoice()">🔊 Голосовой ассистент: ВКЛ</button>
+    <button class="btn btn-primary" style="padding:12px; font-size:14px; margin-bottom:6px;" onclick="enableGPS()">📡 Запустить радар GPS</button>
     <button class="btn btn-bypass" onclick="forceArrival()">📍 Я на месте (GPS-обход)</button>
   </div>
 
@@ -372,6 +383,7 @@ let roadPolyline = null;
 let lastSpoken = "";
 let lastFetchTime = 0;
 let gpsWatchId = null;
+let isVoiceEnabled = localStorage.getItem("quest27_voice") !== "false"; // По умолчанию включен
 
 const SVG_ICONS = {
   straight: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>',
@@ -397,7 +409,33 @@ function initMap() {
   }).addTo(map);
 }
 
+function updateVoiceButton() {
+  const btn = document.getElementById("btnVoiceToggle");
+  if (!btn) return;
+  if (isVoiceEnabled) {
+    btn.innerText = "🔊 Голосовой ассистент: ВКЛ";
+    btn.style.background = "#21262d";
+    btn.style.color = "#f0f6fc";
+  } else {
+    btn.innerText = "🔇 Голосовой ассистент: ВЫКЛ";
+    btn.style.background = "rgba(227, 6, 19, 0.2)";
+    btn.style.color = "#ff7b72";
+  }
+}
+
+function toggleVoice() {
+  isVoiceEnabled = !isVoiceEnabled;
+  localStorage.setItem("quest27_voice", isVoiceEnabled.toString());
+  updateVoiceButton();
+  if (!isVoiceEnabled && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  } else if (isVoiceEnabled) {
+    speak("Голосовой ассистент включен");
+  }
+}
+
 function speak(text) {
+  if (!isVoiceEnabled) return;
   if ('speechSynthesis' in window && text !== lastSpoken) {
     lastSpoken = text;
     window.speechSynthesis.cancel();
@@ -408,7 +446,7 @@ function speak(text) {
   }
 }
 
-function enableAudioAndGPS() {
+function enableGPS() {
   speak("Навигатор активирован.");
   startGPS();
 }
@@ -541,6 +579,8 @@ function renderStep() {
   hideAllScreens();
   document.getElementById("screenNavigation").classList.remove("hidden");
   
+  updateVoiceButton();
+
   if (map) {
     if (roadPolyline) map.removeLayer(roadPolyline);
     setTimeout(() => { map.invalidateSize(); }, 200);
@@ -796,6 +836,7 @@ window.onload = function() {
   } else {
     initMap();
     renderStep();
+    updateVoiceButton();
   }
 };
 </script>
