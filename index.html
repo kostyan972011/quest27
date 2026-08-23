@@ -6,9 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Код 27">
+<meta name="apple-mobile-web-app-title" content="Код 27 🎁">
 <meta name="theme-color" content="#0d1117">
 <title>Код 27</title>
+
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23e30613'/%3E%3Cstop offset='100%25' stop-color='%23700008'/%3E%3C/linearGradient%3E%3ClinearGradient id='gold' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23ffe066'/%3E%3Cstop offset='100%25' stop-color='%23f59f00'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='110' fill='url(%23bg)'/%3E%3Cpath d='M256 50 L256 462' stroke='url(%23gold)' stroke-width='42' stroke-linecap='round'/%3E%3Cpath d='M50 256 L462 256' stroke='url(%23gold)' stroke-width='42' stroke-linecap='round'/%3E%3Ccircle cx='256' cy='256' r='125' fill='%230d1117' stroke='url(%23gold)' stroke-width='14'/%3E%3Ctext x='256' y='292' font-family='-apple-system, BlinkMacSystemFont, Arial, sans-serif' font-size='105' font-weight='900' fill='url(%23gold)' text-anchor='middle'%3E27%3C/text%3E%3Ctext x='256' y='145' font-size='60' text-anchor='middle'%3E👑%3C/text%3E%3C/svg%3E">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -146,7 +148,7 @@
   .footer-note { font-size: 10px; text-align: center; color: var(--text-dim); padding-bottom: 6px; }
 </style>
 </head>
-<body>
+<body onclick="wakeUpGPS()">
 
   <div class="header">
     <h1>КОД <span>27</span></h1>
@@ -166,8 +168,9 @@
 
     <div id="map"></div>
     
-    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin-bottom:6px;">Спутники GPS активны</div>
-    <button class="btn btn-primary" style="padding:10px; font-size:13px;" onclick="enableAudio()">🔊 Включить голосовой гид</button>
+    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin-bottom:6px;">Нажмите кнопку ниже для включения радара</div>
+    
+    <button class="btn btn-primary" style="padding:11px; font-size:13px; margin-bottom:6px;" onclick="enableAudioAndGPS(event)">📡 Включить GPS и Голосовой гид</button>
     <button class="btn btn-bypass" onclick="forceArrival()">📍 Я на месте (GPS-обход)</button>
   </div>
 
@@ -360,6 +363,7 @@ let userMarker = null;
 let roadPolyline = null;
 let lastSpoken = "";
 let lastFetchTime = 0;
+let gpsWatchId = null;
 
 const SVG_ICONS = {
   straight: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>',
@@ -369,6 +373,7 @@ const SVG_ICONS = {
 };
 
 function initMap() {
+  if (map) return;
   map = L.map('map', { zoomControl: false, attributionControl: false }).setView([57.45, 42.12], 17);
   
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -395,8 +400,48 @@ function speak(text) {
   }
 }
 
-function enableAudio() {
-  speak("Навигатор активирован. Маршрут строится по дорогам.");
+function enableAudioAndGPS(e) {
+  if (e) e.stopPropagation();
+  speak("Навигатор активирован. Поиск спутников.");
+  startGPS();
+}
+
+function wakeUpGPS() {
+  if (!userCoords) {
+    startGPS();
+  }
+}
+
+function startGPS() {
+  if ("geolocation" in navigator) {
+    document.getElementById("gpsStatus").innerText = "Запрос связи со спутниками...";
+    
+    // Мгновенный разовый запрос для сброса блокировки PWA
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        handlePosition(pos);
+      },
+      (err) => {
+        document.getElementById("gpsStatus").innerText = "Нажмите синюю кнопку для включения GPS";
+      },
+      { enableHighAccuracy: true, timeout: 6000 }
+    );
+
+    // Непрерывное слежение
+    if (!gpsWatchId) {
+      gpsWatchId = navigator.geolocation.watchPosition(
+        (pos) => { handlePosition(pos); },
+        (err) => {},
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+      );
+    }
+  }
+}
+
+function handlePosition(pos) {
+  userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+  document.getElementById("gpsStatus").innerText = `GPS активен (±${Math.round(pos.coords.accuracy)}м)`;
+  updateRoadNavigation();
 }
 
 function getDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -485,20 +530,6 @@ async function updateRoadNavigation() {
   } catch (e) {
     document.getElementById("turnDist").innerText = `${dTotal > 150 ? 100 : dTotal} м`;
     document.getElementById("turnAction").innerText = "Двигайтесь по улице";
-  }
-}
-
-function initGPS() {
-  if ("geolocation" in navigator) {
-    navigator.geolocation.watchPosition(
-      (pos) => {
-        userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-        document.getElementById("gpsStatus").innerText = `GPS активен (±${Math.round(pos.coords.accuracy)}м)`;
-        updateRoadNavigation();
-      },
-      () => { document.getElementById("gpsStatus").innerText = "Ожидание GPS..."; },
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 8000 }
-    );
   }
 }
 
@@ -741,7 +772,7 @@ window.onload = function() {
   } else {
     initMap();
     renderStep();
-    initGPS();
+    startGPS();
   }
 };
 </script>
