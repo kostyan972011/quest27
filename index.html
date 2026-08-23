@@ -130,7 +130,6 @@
   }
   .hidden { display: none !important; }
   
-  /* КАРТОЧКИ ПРИВИЛЕГИЙ */
   .card-item {
     background: #0d1117; border-left: 4px solid #3fb950; padding: 12px;
     margin-bottom: 10px; border-radius: 8px; font-size: 13.5px; display: flex; align-items: flex-start; gap: 10px;
@@ -194,7 +193,7 @@
     <button id="nextBtn" class="btn btn-success" onclick="nextPoint()">Следующий маршрут ➔</button>
   </div>
 
-  <!-- ЭКРАН 3.5: СБОРКА КОКТЕЙЛЯ 27 (ПОСЛЕ 6 ТОЧКИ) -->
+  <!-- ЭКРАН 3.5: СБОРКА КОКТЕЙЛЯ 27 -->
   <div id="screenCocktail" class="card hidden">
     <div style="text-align:center; font-size:20px; font-weight:800; color:#58a6ff; margin-bottom:8px;">🍸 КОКТЕЙЛЬ «КОД 27»</div>
     <div style="font-size:13.5px; line-height:1.5; color:#c9d1d9; margin-bottom:12px;">
@@ -307,7 +306,7 @@ const POINTS = [
     lat: 57.443025, lon: 42.179298,
     question: "Это место нас еще ни с чем не связывает. Что мы создадим здесь прямо сейчас?",
     type: "text",
-    val: ["*"], // Любой ответ принимается
+    val: ["*"],
     story: "Новое место и новое воспоминание в честь твоих 27 лет!",
     artifact: "Финал: смешивание коктейля!"
   }
@@ -571,11 +570,9 @@ function checkAnswer() {
     hideAllScreens();
 
     if (currentStep === POINTS.length - 1) {
-      // Финальная точка: переходим к экрану сборки коктейля
       document.getElementById("screenCocktail").classList.remove("hidden");
       document.getElementById("stepBadge").innerText = "Коктейль 27";
     } else {
-      // Обычная точка 1-5
       document.getElementById("screenSuccess").classList.remove("hidden");
       document.getElementById("successStory").innerText = pt.story;
       document.getElementById("artifactName").innerText = pt.artifact;
@@ -617,7 +614,6 @@ function revealPrivileges() {
     userCards.push(r + s);
   }
   
-  // Сохраняем в память телефона
   localStorage.setItem("quest27_cards", JSON.stringify(userCards));
   localStorage.setItem("quest27_completed", "true");
 
@@ -630,7 +626,7 @@ function renderPrivilegesScreen(userCards) {
   const list = document.getElementById("privilegesList");
   list.innerHTML = "";
   
-  userCards.forEach((code, idx) => {
+  userCards.forEach((code) => {
     const r = code.slice(0, -1);
     const s = code.slice(-1);
     const desc = PRIVILEGES_DB[code] || "Персональная привилегия";
@@ -647,7 +643,6 @@ function renderPrivilegesScreen(userCards) {
       </div>`;
   });
 
-  // Список всех остальных карт колоды
   const otherList = document.getElementById("otherPrivilegesList");
   otherList.innerHTML = "";
   Object.keys(PRIVILEGES_DB).forEach(key => {
@@ -747,7 +742,6 @@ function hideAllScreens() {
 }
 
 window.onload = function() {
-  // Проверка: пройден ли квест ранее
   const isCompleted = localStorage.getItem("quest27_completed");
   const savedCards = localStorage.getItem("quest27_cards");
 
@@ -758,602 +752,6 @@ window.onload = function() {
     renderStep();
     initGPS();
   }
-};
-</script>
-</body>
-</html>
-    justify-content: space-between;
-  }
-  .header { text-align: center; padding: 6px 0; }
-  .header h1 { margin: 0; font-size: 19px; letter-spacing: 1px; color: var(--text); font-weight: 800; }
-  .header h1 span { color: var(--accent); }
-  .badge-step {
-    display: inline-block;
-    background: var(--primary);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 12px;
-    margin-top: 3px;
-    text-transform: uppercase;
-  }
-  .card {
-    background: var(--card-bg);
-    border: 1px solid #30363d;
-    border-radius: 16px;
-    padding: 14px;
-    margin: 6px 0;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-  }
-
-  /* ПАНЕЛЬ МАНЕВРА */
-  .turn-hud {
-    background: #005aa9;
-    border-radius: 14px;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    color: #fff;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 14px rgba(0, 90, 169, 0.4);
-  }
-  .turn-svg-box {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .turn-info {
-    display: flex;
-    flex-direction: column;
-  }
-  .turn-dist {
-    font-size: 32px;
-    font-weight: 900;
-    line-height: 1;
-    letter-spacing: -0.5px;
-  }
-  .turn-action {
-    font-size: 14px;
-    font-weight: 600;
-    opacity: 0.95;
-    margin-top: 2px;
-  }
-
-  /* КАРТА */
-  #map {
-    width: 100%;
-    height: 270px;
-    border-radius: 12px;
-    border: 1px solid #30363d;
-    margin-bottom: 10px;
-    z-index: 1;
-  }
-
-  .q-title { font-size: 16px; font-weight: 700; line-height: 1.4; margin-bottom: 12px; }
-  input[type="text"], input[type="date"] {
-    width: 100%; background: #0d1117; border: 1.5px solid #30363d;
-    color: #fff; padding: 12px 14px; font-size: 16px; border-radius: 10px; margin-bottom: 12px; outline: none;
-  }
-  input:focus { border-color: #58a6ff; }
-  .btn {
-    display: block; width: 100%; background: var(--primary); color: #fff; border: none;
-    padding: 13px; font-size: 14px; font-weight: 700; border-radius: 12px; cursor: pointer; text-align: center;
-  }
-  .btn:active { transform: scale(0.98); opacity: 0.9; }
-  .btn-accent { background: var(--accent); }
-  .btn-success { background: var(--success); }
-  .btn-bypass { background: transparent; color: var(--text-dim); border: 1px dashed #30363d; font-size: 11px; padding: 6px; margin-top: 8px; border-radius: 8px; }
-  .artifact-alert {
-    background: rgba(35, 134, 54, 0.15); border: 1px solid var(--success); border-radius: 12px;
-    padding: 14px; margin: 12px 0; font-size: 13.5px; line-height: 1.4;
-  }
-  .quiz-opt {
-    background: #0d1117; border: 1px solid #30363d; color: #fff; padding: 12px;
-    border-radius: 10px; margin-bottom: 8px; font-size: 14px; text-align: left; width: 100%; cursor: pointer;
-  }
-  .hidden { display: none !important; }
-  .card-item {
-    background: #0d1117; border-left: 4px solid var(--accent); padding: 10px 12px;
-    margin-bottom: 8px; border-radius: 6px; font-size: 13px;
-  }
-  .footer-note { font-size: 10px; text-align: center; color: var(--text-dim); padding-bottom: 6px; }
-</style>
-</head>
-<body>
-
-  <div class="header">
-    <h1>КОД <span>27</span></h1>
-    <div id="stepBadge" class="badge-step">Секретная цель 1 из 6</div>
-  </div>
-
-  <!-- ЭКРАН 1: НАВИГАЦИЯ -->
-  <div id="screenNavigation" class="card">
-    <div class="turn-hud">
-      <div id="turnSvg" class="turn-svg-box">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-      </div>
-      <div class="turn-info">
-        <div id="turnDist" class="turn-dist">--- м</div>
-        <div id="turnAction" class="turn-action">Построение пути...</div>
-      </div>
-    </div>
-
-    <div id="map"></div>
-    
-    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin-bottom:6px;">Спутники GPS активны</div>
-    <button class="btn btn-primary" style="padding:10px; font-size:13px;" onclick="enableAudio()">🔊 Включить голосовой гид</button>
-    <button class="btn btn-bypass" onclick="forceArrival()">📍 Я на месте (GPS-обход)</button>
-  </div>
-
-  <!-- ЭКРАН 2: ВОПРОС ПО ПРИБЫТИЮ -->
-  <div id="screenQuestion" class="card hidden">
-    <div id="qTitle" class="q-title"></div>
-    <div id="qInputArea"></div>
-    <div id="qError" style="color:var(--accent); font-size:12px; margin-bottom:8px;" class="hidden">Попробуй вспомнить еще раз!</div>
-    <button class="btn btn-accent" onclick="checkAnswer()">Подтвердить ответ</button>
-  </div>
-
-  <!-- ЭКРАН 3: УСПЕХ -->
-  <div id="screenSuccess" class="card hidden">
-    <div style="font-size:22px; text-align:center; margin-bottom:8px;">✨ Верно!</div>
-    <div id="successStory" style="font-size:13.5px; line-height:1.45; color:#c9d1d9;"></div>
-    <div class="artifact-alert">
-      <b>🎁 НАГРАДА:</b><br>
-      1. Вытяни <b>1 карту привилегий</b> из колоды у мужа!<br>
-      2. Забери <b id="artifactName">Артефакт</b> в рюкзак.
-    </div>
-    <button id="nextBtn" class="btn btn-success" onclick="nextPoint()">Следующий маршрут ➔</button>
-  </div>
-
-  <!-- ЭКРАН 4: ФИНАЛ: ВВОД КАРТ -->
-  <div id="screenFinal" class="card hidden">
-    <div style="text-align:center; font-size:20px; font-weight:800; color:#58a6ff; margin-bottom:8px;">🍸 КОКТЕЙЛЬ «КОД 27»</div>
-    <div style="font-size:13px; line-height:1.4; color:#c9d1d9; margin-bottom:14px;">
-      Все ингредиенты собраны! Время смешать наш напиток на закате.
-    </div>
-    <hr style="border:0; border-top:1px solid #30363d; margin:12px 0;">
-    <div style="font-weight:700; font-size:14px; margin-bottom:8px;">🃏 Введи вытянутые карты привилегий:</div>
-    <div id="cardSelectors"></div>
-    <button class="btn btn-primary" style="margin-top:10px;" onclick="revealPrivileges()">Разблокировать привилегии</button>
-  </div>
-
-  <!-- ЭКРАН 5: СПИСОК ПРИВИЛЕГИЙ -->
-  <div id="screenPrivileges" class="card hidden">
-    <div style="font-size:18px; font-weight:800; color:#3fb950; margin-bottom:10px; text-align:center;">🎉 ТВОИ ПРИВИЛЕГИИ</div>
-    <div id="privilegesList"></div>
-    <button class="btn btn-accent" style="margin-top:14px;" onclick="startAudit()">Пройти аттестацию ➔</button>
-  </div>
-
-  <!-- ЭКРАН 6: АТТЕСТАЦИЯ -->
-  <div id="screenAudit" class="card hidden">
-    <div style="text-align:center; font-size:11px; font-weight:bold; color:var(--accent); text-transform:uppercase; margin-bottom:4px;">Аптечная сеть «Апрель»</div>
-    <div style="font-size:16px; font-weight:800; text-align:center; margin-bottom:12px;">Внеплановая аттестация провизора</div>
-    <div id="auditContainer">
-      <div id="auditQTitle" class="q-title" style="font-size:14px;"></div>
-      <div id="auditOptions"></div>
-    </div>
-  </div>
-
-  <!-- ЭКРАН 7: РЕЗУЛЬТАТ -->
-  <div id="screenPrescription" class="card hidden">
-    <div style="text-align:center; font-size:26px; margin-bottom:6px;">🩺 100% СДАНО!</div>
-    <div style="font-size:14px; font-weight:bold; color:#3fb950; text-align:center; margin-bottom:10px;">Категория подтверждена</div>
-    <div class="artifact-alert" style="border-color:#58a6ff; background:rgba(88,166,255,0.12);">
-      <b>📋 НАЗНАЧЕНИЕ:</b><br>
-      Рецептурный бланк № 107-1/у уже выписан.<br><br>
-      👉 <b>ДЕЙСТВИЕ:</b> Открой свою <b>велосумку</b> прямо сейчас и забери рецепт!
-    </div>
-    <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:8px;">С днем рождения, любимая! ❤️</div>
-  </div>
-
-  <div class="footer-note">Quest 27 • Fresh Input Edition</div>
-
-<script>
-const POINTS = [
-  {
-    lat: 57.456839, lon: 42.097741,
-    question: "Какая памятная дата и год навсегда связали нас с этим местом?",
-    type: "date",
-    val: ["2015-11-26", "2015-11-27", "2015-11-28", "26.11.2015", "27.11.2015", "28.11.2015"],
-    story: "Тот самый холодный ноябрьский вечер 2015 года и встреча, изменившая всё ❤️",
-    artifact: "Секретный ингредиент №1 (Бокалы)"
-  },
-  {
-    lat: 57.444934, lon: 42.155086,
-    question: "Это место нашей первой совместной прогулки. Вспомни, что вокруг тебя тогда особенно сильно впечатлило и запомнилось?",
-    type: "text",
-    val: ["гирлянд", "огоньк", "свет"],
-    story: "Именно! Те самые яркие новогодние гирлянды и огоньки ✨",
-    artifact: "Секретный ингредиент №2 (Ягодная основа)"
-  },
-  {
-    lat: 57.450475, lon: 42.122070,
-    question: "Какое особенное и главное событие навсегда связало нас с этим местом?",
-    type: "text",
-    val: ["секс", "близост", "любов"],
-    story: "Тот самый незабываемый момент нашей настоящей близости ❤️",
-    artifact: "Секретный ингредиент №3 (Лёд и свежесть)"
-  },
-  {
-    lat: 57.446619, lon: 42.117412,
-    question: "От кого и в каком интересном состоянии я спасал тебя на этом месте?",
-    type: "text",
-    val: ["полиц", "пьян", "мент"],
-    story: "Легендарное спасение от полиции в веселом состоянии! Твой щит всегда на страже 🚔",
-    artifact: "Секретный ингредиент №4 (Секретный градус)"
-  },
-  {
-    lat: 57.458609, lon: 42.107571,
-    question: "Какое самое судьбоносное событие для нашей семьи произошло на этом месте?",
-    type: "text",
-    val: ["беремен", "зачат", "доч", "заберем"],
-    story: "Тот самый день, подаривший нам нашу прекрасную доченьку! 👶❤️",
-    artifact: "Секретный ингредиент №5 (Игристое)"
-  },
-  {
-    lat: 57.443025, lon: 42.179298,
-    question: "Это место нас еще ни с чем не связывает. Что мы создадим здесь прямо сейчас?",
-    type: "text",
-    val: ["в", "м", "к", "р", "н"],
-    story: "Новое место и новое воспоминание в честь твоих 27 лет!",
-    artifact: "Финал: смешивание коктейля!"
-  }
-];
-
-const PRIVILEGES_DB = {
-  "6H": "Расслабляющий массаж стоп и голеней (20 минут)",
-  "7H": "Массаж шейно-воротниковой зоны во время вечернего кино",
-  "8H": "Полный массаж спины с теплым ароматическим маслом",
-  "9H": "Массаж головы и расчесывание волос перед сном",
-  "10H": "Организация горячей ванны с пеной, свечами и 1 часом тишины",
-  "JH": "Спа-вечер: муж наносит маску, делает массаж лица и подает чай",
-  "QH": "Экспресс-массаж по первому требованию (10 минут)",
-  "KH": "Мытье и бережная сушка волос феном от мужа",
-  "AH": "🌟 СУПЕР-КАРТА: Поход на профессиональный массаж в спа-салон",
-
-  "6D": "Кофе / чай в постель в любой выбранный выходной",
-  "7D": "Срочный рейс мужа за вкусняшкой в магазин в любое время суток",
-  "8D": "Ужин от шеф-повара: муж готовит любимое блюдо и сам моет посуду",
-  "9D": "Доставка любимого завтрака прямо к твоему пробуждению",
-  "10D": "Гастро-сет: набор экзотических фруктов или сырная тарелка",
-  "JD": "Сладкий безлимит: покупка любого торта или десерта",
-  "QD": "«Я не знаю, что хочу»: муж сам придумывает и заказывает ужин",
-  "KD": "Романтический ужин в ресторане (локация на твой выбор)",
-  "AD": "🌟 СУПЕР-КАРТА: Читмил-день со всеми любимыми вредностями и кино",
-
-  "6C": "Полный иммунитет от мытья посуды на 3 дня подряд",
-  "7C": "Генеральная влажная уборка всей квартиры силами мужа",
-  "8C": "День абсолютной лени: муж берет весь быт на себя",
-  "9C": "Вынос мусора и мелкие поручения без напоминаний на неделю",
-  "10C": "Комплексная мойка и химчистка автомобиля",
-  "JC": "Освобождение от походов по магазинам (муж закупает по списку)",
-  "QC": "Вечер девичника: квартира в твоем полном распоряжении",
-  "KC": "Муж переносит и собирает любые тяжелые вещи без вздохов",
-  "AC": "🌟 СУПЕР-КАРТА: Выходные абсолютной свободы от домашних дел",
-
-  "6S": "Право единоличного выбора фильма/сериала на вечер",
-  "7S": "Спонтанная вечерняя поездка на электровелосипедах",
-  "8S": "Карта «Ты права»: мгновенная капитуляция мужа в споре",
-  "9S": "Терпеливая фотосессия: 30 минут лучших кадров для контента",
-  "10S": "Карта «На ручки»: порция тепла, обнимашек и заботы",
-  "JS": "Музыкальный диджей: в поездках играет только твой плейлист",
-  "QS": "Свидание-сюрприз: программа и организация полностью на муже",
-  "KS": "Поездка выходного дня в загородный отель или мини-тур",
-  "AS": "👑 ДЖОКЕР: Любое разумное желание по первому требованию"
-};
-
-const CARD_RANKS = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-const CARD_SUITS = [
-  { code: "H", name: "♥ Червы" },
-  { code: "D", name: "♦ Бубны" },
-  { code: "C", name: "♣ Трефы" },
-  { code: "S", name: "♠ Пики" }
-];
-
-let currentStep = 0;
-let userCoords = null;
-let map = null;
-let userMarker = null;
-let roadPolyline = null;
-let lastSpoken = "";
-let lastFetchTime = 0;
-
-const SVG_ICONS = {
-  straight: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>',
-  left: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 19v-6a4 4 0 0 0-4-4H5"></path><polyline points="10 4 5 9 10 14"></polyline></svg>',
-  right: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19v-6a4 4 0 0 1 4-4h10"></path><polyline points="14 4 19 9 14 14"></polyline></svg>',
-  uturn: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>'
-};
-
-function initMap() {
-  map = L.map('map', { zoomControl: false, attributionControl: false }).setView([57.45, 42.12], 17);
-  
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19
-  }).addTo(map);
-
-  userMarker = L.circleMarker([57.45, 42.12], {
-    color: '#ffffff',
-    fillColor: '#005aa9',
-    fillOpacity: 1,
-    radius: 9,
-    weight: 3
-  }).addTo(map);
-}
-
-function speak(text) {
-  if ('speechSynthesis' in window && text !== lastSpoken) {
-    lastSpoken = text;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'ru-RU';
-    u.rate = 1.0;
-    window.speechSynthesis.speak(u);
-  }
-}
-
-function enableAudio() {
-  speak("Навигатор активирован. Маршрут строится по дорогам.");
-}
-
-function getDistanceMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371e3;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-}
-
-async function updateRoadNavigation() {
-  if (!userCoords || currentStep >= POINTS.length) return;
-  const target = POINTS[currentStep];
-  const dTotal = getDistanceMeters(userCoords.lat, userCoords.lon, target.lat, target.lon);
-
-  if (map && userMarker) {
-    userMarker.setLatLng([userCoords.lat, userCoords.lon]);
-    map.panTo([userCoords.lat, userCoords.lon], { animate: true, duration: 0.5 });
-  }
-
-  if (dTotal <= 35) {
-    showQuestionScreen();
-    return;
-  }
-
-  const now = Date.now();
-  if (now - lastFetchTime < 3500) return;
-  lastFetchTime = now;
-
-  try {
-    const res = await fetch(`https://router.project-osrm.org/route/v1/cycling/${userCoords.lon},${userCoords.lat};${target.lon},${target.lat}?overview=full&geometries=geojson&steps=true`);
-    const data = await res.json();
-    
-    if (data.routes && data.routes.length > 0) {
-      const route = data.routes[0];
-      const coords = route.geometry.coordinates;
-      const steps = route.legs[0].steps;
-
-      let shortPath = [[userCoords.lat, userCoords.lon]];
-      let accumDist = 0;
-      for (let i = 0; i < coords.length - 1; i++) {
-        let p1 = coords[i];
-        let p2 = coords[i+1];
-        let segDist = getDistanceMeters(p1[1], p1[0], p2[1], p2[0]);
-        accumDist += segDist;
-        shortPath.push([p2[1], p2[0]]);
-        if (accumDist >= 120) break;
-      }
-
-      if (map) {
-        if (roadPolyline) map.removeLayer(roadPolyline);
-        roadPolyline = L.polyline(shortPath, {
-          color: '#e30613', weight: 6, opacity: 0.9, lineCap: 'round', lineJoin: 'round'
-        }).addTo(map);
-      }
-
-      let nextStep = steps.length > 1 ? steps[1] : steps[0];
-      let distToTurn = Math.round(steps[0].distance);
-      let modifier = (nextStep.maneuver && nextStep.maneuver.modifier) || "straight";
-      let street = nextStep.name ? `на ${nextStep.name}` : "";
-
-      let icon = SVG_ICONS.straight;
-      let actionText = "Двигайтесь прямо";
-
-      if (modifier.includes("left")) {
-        icon = SVG_ICONS.left;
-        actionText = `Поверните налево ${street}`;
-      } else if (modifier.includes("right")) {
-        icon = SVG_ICONS.right;
-        actionText = `Поверните направо ${street}`;
-      } else if (modifier.includes("uturn")) {
-        icon = SVG_ICONS.uturn;
-        actionText = "Развернитесь";
-      }
-
-      document.getElementById("turnSvg").innerHTML = icon;
-      document.getElementById("turnDist").innerText = `${distToTurn} м`;
-      document.getElementById("turnAction").innerText = actionText;
-
-      if (distToTurn < 80) {
-        speak(`Через ${distToTurn} метров ${actionText}`);
-      }
-    }
-  } catch (e) {
-    document.getElementById("turnDist").innerText = `${dTotal > 150 ? 100 : dTotal} м`;
-    document.getElementById("turnAction").innerText = "Двигайтесь по улице";
-  }
-}
-
-function initGPS() {
-  if ("geolocation" in navigator) {
-    navigator.geolocation.watchPosition(
-      (pos) => {
-        userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-        document.getElementById("gpsStatus").innerText = `GPS активен (±${Math.round(pos.coords.accuracy)}м)`;
-        updateRoadNavigation();
-      },
-      () => { document.getElementById("gpsStatus").innerText = "Ожидание GPS..."; },
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 8000 }
-    );
-  }
-}
-
-function renderStep() {
-  lastSpoken = "";
-  document.getElementById("stepBadge").innerText = `Секретная цель ${currentStep + 1} из ${POINTS.length}`;
-  document.getElementById("turnDist").innerText = "--- м";
-  document.getElementById("turnAction").innerText = "Построение дорожного пути...";
-  document.getElementById("screenNavigation").classList.remove("hidden");
-  document.getElementById("screenQuestion").classList.add("hidden");
-  document.getElementById("screenSuccess").classList.add("hidden");
-  
-  if (map) {
-    if (roadPolyline) map.removeLayer(roadPolyline);
-    setTimeout(() => { map.invalidateSize(); }, 200);
-  }
-  updateRoadNavigation();
-}
-
-function forceArrival() { showQuestionScreen(); }
-
-function showQuestionScreen() {
-  const pt = POINTS[currentStep];
-  speak("Вы прибыли на место! Вспомните ответ на вопрос.");
-  document.getElementById("screenNavigation").classList.add("hidden");
-  document.getElementById("screenQuestion").classList.remove("hidden");
-  document.getElementById("qTitle").innerText = pt.question;
-  document.getElementById("qError").classList.add("hidden");
-
-  // Полная принудительная очистка и создание чистого поля ввода
-  const area = document.getElementById("qInputArea");
-  if (pt.type === "date") {
-    area.innerHTML = '<input type="date" id="qInputVal" autocomplete="off">';
-  } else {
-    area.innerHTML = '<input type="text" id="qInputVal" placeholder="Введите ответ..." autocomplete="off" autofocus>';
-  }
-  
-  // Дополнительная гарантия сброса значения
-  setTimeout(() => {
-    const inputEl = document.getElementById("qInputVal");
-    if (inputEl) {
-      inputEl.value = "";
-      inputEl.focus();
-    }
-  }, 50);
-}
-
-function checkAnswer() {
-  const inputEl = document.getElementById("qInputVal");
-  if (!inputEl) return;
-  const val = inputEl.value.trim().toLowerCase();
-  const pt = POINTS[currentStep];
-  let ok = false;
-  if (Array.isArray(pt.val)) {
-    ok = pt.val.some(kw => val.includes(kw.toLowerCase()));
-  }
-  if (ok) {
-    speak("Ответ верный! Тяните карту привилегий.");
-    document.getElementById("screenQuestion").classList.add("hidden");
-    document.getElementById("screenSuccess").classList.remove("hidden");
-    document.getElementById("successStory").innerText = pt.story;
-    document.getElementById("artifactName").innerText = pt.artifact;
-    if (currentStep === POINTS.length - 1) {
-      document.getElementById("nextBtn").innerText = "Перейти к финалу ➔";
-    }
-  } else {
-    speak("Неверно. Подумайте еще раз.");
-    document.getElementById("qError").classList.remove("hidden");
-  }
-}
-
-function nextPoint() {
-  currentStep++;
-  if (currentStep < POINTS.length) renderStep();
-  else showFinalScreen();
-}
-
-function showFinalScreen() {
-  speak("Все артефакты собраны! Введите номера карт привилегий.");
-  document.getElementById("screenSuccess").classList.add("hidden");
-  document.getElementById("screenFinal").classList.remove("hidden");
-  document.getElementById("stepBadge").innerText = "Финал";
-
-  const container = document.getElementById("cardSelectors");
-  container.innerHTML = "";
-  for (let i = 1; i <= 5; i++) {
-    let rankOpts = CARD_RANKS.map(r => `<option value="${r}">${r}</option>`).join("");
-    let suitOpts = CARD_SUITS.map(s => `<option value="${s.code}">${s.name}</option>`).join("");
-    container.innerHTML += `
-      <div style="display:flex; gap:8px; margin-bottom:8px;">
-        <select id="rank_${i}" style="flex:1; background:#0d1117; color:#fff; border:1px solid #30363d; padding:10px; border-radius:8px; font-size:15px;">${rankOpts}</select>
-        <select id="suit_${i}" style="flex:2; background:#0d1117; color:#fff; border:1px solid #30363d; padding:10px; border-radius:8px; font-size:15px;">${suitOpts}</select>
-      </div>`;
-  }
-}
-
-function revealPrivileges() {
-  const list = document.getElementById("privilegesList");
-  list.innerHTML = "";
-  for (let i = 1; i <= 5; i++) {
-    const r = document.getElementById(`rank_${i}`).value;
-    const s = document.getElementById(`suit_${i}`).value;
-    const desc = PRIVILEGES_DB[r + s] || "Персональная привилегия";
-    const suitObj = CARD_SUITS.find(item => item.code === s);
-    const suitName = suitObj ? suitObj.name : "";
-    list.innerHTML += `<div class="card-item"><b style="color:#58a6ff;">[${r} ${suitName}]:</b><br>${desc}</div>`;
-  }
-  document.getElementById("screenFinal").classList.add("hidden");
-  document.getElementById("screenPrivileges").classList.remove("hidden");
-}
-
-const AUDIT_QUESTIONS = [
-  { q: "Вопрос 1/3: Какова суточная норма поцелуев мужа?", options: ["1 раз", "По расписанию", "Неограниченно, до полного снятия стресса"], correct: 2 },
-  { q: "Вопрос 2/3: Главное показание к шопингу на Ozon?", options: ["Скидки", "Плохая погода", "Наступление 25.08.2026 и 27-летие!"], correct: 2 },
-  { q: "Вопрос 3/3: Кто самый заботливый муж?", options: ["Тот, кто создал этот квест ❤️"], correct: 0 }
-];
-
-let auditIdx = 0;
-function startAudit() {
-  document.getElementById("screenPrivileges").classList.add("hidden");
-  document.getElementById("screenAudit").classList.remove("hidden");
-  auditIdx = 0;
-  renderAuditQ();
-}
-
-function renderAuditQ() {
-  const cur = AUDIT_QUESTIONS[auditIdx];
-  document.getElementById("auditQTitle").innerText = cur.q;
-  const box = document.getElementById("auditOptions");
-  box.innerHTML = "";
-  cur.options.forEach((opt, i) => {
-    box.innerHTML += `<button class="quiz-opt" onclick="answerAudit(${i})">${opt}</button>`;
-  });
-}
-
-function answerAudit(choice) {
-  if (choice === AUDIT_QUESTIONS[auditIdx].correct) {
-    auditIdx++;
-    if (auditIdx < AUDIT_QUESTIONS.length) renderAuditQ();
-    else {
-      speak("Аттестация сдана на отлично! Заберите ваш рецепт в сумке.");
-      document.getElementById("screenAudit").classList.add("hidden");
-      document.getElementById("screenPrescription").classList.remove("hidden");
-    }
-  } else {
-    alert("Комиссия считает иначе! Попробуй другой вариант 😉");
-  }
-}
-
-window.onload = function() {
-  initMap();
-  renderStep();
-  initGPS();
 };
 </script>
 </body>
