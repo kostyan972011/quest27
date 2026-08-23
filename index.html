@@ -4,10 +4,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-title" content="Код 27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Код 27 🎁">
 <meta name="theme-color" content="#0d1117">
 <title>Код 27</title>
 
+<link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 
@@ -167,7 +170,7 @@
 
     <div id="map"></div>
     
-    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin-bottom:8px;">Нажмите кнопку ниже для старта навигатора</div>
+    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin-bottom:8px;">Нажмите кнопку ниже для старта GPS</div>
     
     <button class="btn btn-primary" style="padding:12px; font-size:14px; margin-bottom:6px;" onclick="enableAudioAndGPS()">📡 Включить Навигатор и GPS</button>
     <button class="btn btn-bypass" onclick="forceArrival()">📍 Я на месте (GPS-обход)</button>
@@ -251,7 +254,7 @@
     <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:12px;">С днем рождения, любимая! ❤️</div>
   </div>
 
-  <div class="footer-note">Quest 27 • Autonomous Edition</div>
+  <div class="footer-note">Quest 27 • PWA Verified Edition</div>
 
 <script>
 const POINTS = [
@@ -400,7 +403,7 @@ function speak(text) {
 }
 
 function enableAudioAndGPS() {
-  speak("Навигатор активирован. Поиск спутников.");
+  speak("Навигатор активирован.");
   startGPS();
 }
 
@@ -408,19 +411,31 @@ function startGPS() {
   if ("geolocation" in navigator) {
     document.getElementById("gpsStatus").innerText = "Подключение к спутникам GPS...";
     
+    // Запрос низкой точности сначала для быстрого ответа iOS
     navigator.geolocation.getCurrentPosition(
-      (pos) => { handlePosition(pos); },
-      (err) => { document.getElementById("gpsStatus").innerText = "Разрешите доступ к геопозиции в Safari"; },
-      { enableHighAccuracy: true, timeout: 8000 }
+      (pos) => { 
+        handlePosition(pos);
+        // Запуск точного постоянного слежения
+        if (!gpsWatchId) {
+          gpsWatchId = navigator.geolocation.watchPosition(
+            (p) => { handlePosition(p); },
+            (e) => {},
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+          );
+        }
+      },
+      (err) => { 
+        // Повторный запрос с высокой точностью
+        navigator.geolocation.getCurrentPosition(
+          (pos) => { handlePosition(pos); },
+          (e) => {
+            document.getElementById("gpsStatus").innerText = "Разрешите доступ к геопозиции в Настройках iPhone";
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      },
+      { enableHighAccuracy: false, timeout: 5000 }
     );
-
-    if (!gpsWatchId) {
-      gpsWatchId = navigator.geolocation.watchPosition(
-        (pos) => { handlePosition(pos); },
-        (err) => {},
-        { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
-      );
-    }
   }
 }
 
