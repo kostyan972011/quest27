@@ -7,9 +7,11 @@
 <meta name="theme-color" content="#0d1117">
 <title>Код 27 🎁</title>
 
+<!-- Иконка для домашнего экрана iPhone -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 
+<!-- Карта Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -127,12 +129,17 @@
   .card-item {
     background: #0d1117; border-left: 4px solid #3fb950; padding: 12px;
     margin-bottom: 10px; border-radius: 8px; font-size: 13.5px; display: flex; align-items: flex-start; gap: 10px;
+    transition: opacity 0.2s ease;
   }
   .card-item.done {
-    opacity: 0.5; border-left-color: #30363d; text-decoration: line-through;
+    opacity: 0.45; border-left-color: #30363d;
+  }
+  .card-item.done .card-item-title, .card-item.done .card-item-desc {
+    text-decoration: line-through;
+    color: var(--text-dim);
   }
   .card-item input[type="checkbox"] {
-    width: 20px; height: 20px; accent-color: #238636; cursor: pointer; margin-top: 2px;
+    width: 22px; height: 22px; accent-color: #238636; cursor: pointer; margin-top: 2px; flex-shrink: 0;
   }
   .card-item-other {
     background: #0d1117; border-left: 4px solid #30363d; padding: 8px 10px;
@@ -148,6 +155,7 @@
     <div id="stepBadge" class="badge-step">Секретная цель 1 из 6</div>
   </div>
 
+  <!-- ЭКРАН 1: НАВИГАЦИЯ -->
   <div id="screenNavigation" class="card">
     <div class="turn-hud">
       <div id="turnSvg" class="turn-svg-box">
@@ -167,6 +175,7 @@
     <button class="btn btn-bypass" onclick="forceArrival()">📍 Я на месте (GPS-обход)</button>
   </div>
 
+  <!-- ЭКРАН 2: ВОПРОС ПО ПРИБЫТИЮ -->
   <div id="screenQuestion" class="card hidden">
     <div id="qTitle" class="q-title"></div>
     <div id="qInputArea"></div>
@@ -174,6 +183,7 @@
     <button class="btn btn-accent" onclick="checkAnswer()">Подтвердить ответ</button>
   </div>
 
+  <!-- ЭКРАН 3: УСПЕХ ТОЧКИ 1-5 -->
   <div id="screenSuccess" class="card hidden">
     <div style="font-size:22px; text-align:center; margin-bottom:8px;">✨ Верно!</div>
     <div id="successStory" style="font-size:13.5px; line-height:1.45; color:#c9d1d9;"></div>
@@ -185,6 +195,7 @@
     <button id="nextBtn" class="btn btn-success" onclick="nextPoint()">Следующий маршрут ➔</button>
   </div>
 
+  <!-- ЭКРАН 3.5: СБОРКА КОКТЕЙЛЯ 27 -->
   <div id="screenCocktail" class="card hidden">
     <div style="text-align:center; font-size:20px; font-weight:800; color:#58a6ff; margin-bottom:8px;">🍸 КОКТЕЙЛЬ «КОД 27»</div>
     <div style="font-size:13.5px; line-height:1.5; color:#c9d1d9; margin-bottom:12px;">
@@ -199,6 +210,7 @@
     <button class="btn btn-success" onclick="showCardInputScreen()">🍸 Коктейль готов! Перейти к картам ➔</button>
   </div>
 
+  <!-- ЭКРАН 4: ВВОД КАРТ -->
   <div id="screenFinal" class="card hidden">
     <div style="font-weight:800; font-size:17px; margin-bottom:6px; text-align:center;">🃏 КАРТЫ ПРИВИЛЕГИЙ</div>
     <div style="font-size:12.5px; color:var(--text-dim); margin-bottom:12px; text-align:center;">
@@ -208,6 +220,7 @@
     <button class="btn btn-primary" style="margin-top:10px;" onclick="revealPrivileges()">Разблокировать привилегии ➔</button>
   </div>
 
+  <!-- ЭКРАН 5: СПИСОК ПРИВИЛЕГИЙ -->
   <div id="screenPrivileges" class="card hidden">
     <div style="font-size:18px; font-weight:800; color:#3fb950; margin-bottom:10px; text-align:center;">🎉 ТВОИ ПРИВИЛЕГИИ</div>
     <div style="font-size:12px; color:var(--text-dim); margin-bottom:10px; text-align:center;">Отмечай галочками выполненные привилегии:</div>
@@ -224,6 +237,7 @@
     </div>
   </div>
 
+  <!-- ЭКРАН 6: АТТЕСТАЦИЯ -->
   <div id="screenAudit" class="card hidden">
     <div style="text-align:center; font-size:11px; font-weight:bold; color:var(--accent); text-transform:uppercase; margin-bottom:4px;">Аптечная сеть «Апрель»</div>
     <div style="font-size:16px; font-weight:800; text-align:center; margin-bottom:12px;">Внеплановая аттестация провизора</div>
@@ -233,6 +247,7 @@
     </div>
   </div>
 
+  <!-- ЭКРАН 7: РЕЗУЛЬТАТ -->
   <div id="screenPrescription" class="card hidden">
     <div style="text-align:center; font-size:26px; margin-bottom:6px;">🩺 100% СДАНО!</div>
     <div style="font-size:14px; font-weight:bold; color:#3fb950; text-align:center; margin-bottom:10px;">Категория подтверждена</div>
@@ -245,7 +260,7 @@
     <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:12px;">С днем рождения, любимая! ❤️</div>
   </div>
 
-  <div class="footer-note">Quest 27 • Live Edition</div>
+  <div class="footer-note">Quest 27 • Persistent Edition</div>
 
 <script>
 const POINTS = [
@@ -406,7 +421,6 @@ function startGPS() {
 
   document.getElementById("gpsStatus").innerText = "Подключение к спутникам...";
 
-  // 1. Быстрый опрос без ожидания высокой точности
   navigator.geolocation.getCurrentPosition(
     (pos) => { handlePosition(pos); },
     (err) => {
@@ -415,7 +429,6 @@ function startGPS() {
     { enableHighAccuracy: false, timeout: 7000 }
   );
 
-  // 2. Постоянное точное отслеживание
   if (!gpsWatchId) {
     gpsWatchId = navigator.geolocation.watchPosition(
       (pos) => { handlePosition(pos); },
@@ -630,7 +643,12 @@ function revealPrivileges() {
 }
 
 function renderPrivilegesScreen(userCards) {
-  const doneMap = JSON.parse(localStorage.getItem("quest27_done") || "{}");
+  let doneMap = {};
+  try {
+    doneMap = JSON.parse(localStorage.getItem("quest27_done") || "{}");
+  } catch (e) {
+    doneMap = {};
+  }
 
   const list = document.getElementById("privilegesList");
   list.innerHTML = "";
@@ -641,13 +659,14 @@ function renderPrivilegesScreen(userCards) {
     const desc = PRIVILEGES_DB[code] || "Персональная привилегия";
     const suitObj = CARD_SUITS.find(item => item.code === s);
     const suitName = suitObj ? suitObj.name : "";
-    const isChecked = !!doneMap[code];
+    const isChecked = Boolean(doneMap[code]);
 
     list.innerHTML += `
       <div class="card-item ${isChecked ? 'done' : ''}" id="card_box_${code}">
-        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleDone('${code}')">
+        <input type="checkbox" id="chk_${code}" ${isChecked ? 'checked' : ''} onchange="toggleDone('${code}')">
         <div>
-          <b style="color:#58a6ff;">[${r} ${suitName}]:</b><br>${desc}
+          <b class="card-item-title" style="color:#58a6ff;">[${r} ${suitName}]:</b><br>
+          <span class="card-item-desc">${desc}</span>
         </div>
       </div>`;
   });
@@ -679,14 +698,23 @@ function renderPrivilegesScreen(userCards) {
 }
 
 function toggleDone(code) {
-  const doneMap = JSON.parse(localStorage.getItem("quest27_done") || "{}");
-  doneMap[code] = !doneMap[code];
-  localStorage.setItem("quest27_done", JSON.stringify(doneMap));
+  let doneMap = {};
+  try {
+    doneMap = JSON.parse(localStorage.getItem("quest27_done") || "{}");
+  } catch (e) {
+    doneMap = {};
+  }
 
-  const el = document.getElementById(`card_box_${code}`);
-  if (el) {
-    if (doneMap[code]) el.classList.add("done");
-    else el.classList.remove("done");
+  const chk = document.getElementById(`chk_${code}`);
+  if (chk) {
+    doneMap[code] = chk.checked;
+    localStorage.setItem("quest27_done", JSON.stringify(doneMap));
+
+    const el = document.getElementById(`card_box_${code}`);
+    if (el) {
+      if (chk.checked) el.classList.add("done");
+      else el.classList.remove("done");
+    }
   }
 }
 
@@ -759,7 +787,6 @@ window.onload = function() {
   } else {
     initMap();
     renderStep();
-    startGPS();
   }
 };
 </script>
