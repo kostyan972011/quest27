@@ -297,10 +297,10 @@
     <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:12px;">С днем рождения, любимая! ❤️</div>
   </div>
 
-  <!-- Скрытый холст для генерации сертификата -->
+  <!-- Холст генерации сертификата -->
   <canvas id="certCanvas" width="1080" height="1920" style="display:none;"></canvas>
 
-  <div class="footer-note">Quest 27 • Certificate Edition</div>
+  <div class="footer-note">Quest 27 • Full Certificate Edition</div>
 
 <script>
 const POINTS = [
@@ -311,7 +311,7 @@ const POINTS = [
     val: ["2015-11-26", "2015-11-27", "2015-11-28", "26.11.2015", "27.11.2015", "28.11.2015"],
     story: "Тот самый холодный ноябрьский вечер 2015 года и встреча, изменившая всё ❤️",
     artifact: "Секретный ингредиент №1 (Бокалы)",
-    hint: "Ноябрь 2015 года... день перед твоим 16-летием!"
+    hint: "Холодный конец ноября 2015 года..."
   },
   {
     lat: 57.444934, lon: 42.155086,
@@ -854,7 +854,7 @@ function showPrescriptionScreen() {
   document.getElementById("stepBadge").innerText = "Назначение";
 }
 
-// Генератор Премиального Сертификата (Canvas -> PNG)
+// Генератор Премиального Сертификата (Гарантированная отрисовка всех 5 карточек)
 function generateCertificate() {
   triggerHaptic("success");
   fireConfetti();
@@ -880,28 +880,45 @@ function generateCertificate() {
   ctx.lineWidth = 3;
   ctx.strokeRect(70, 70, 940, 1780);
 
-  // Корона и Заголовок
-  ctx.font = '80px -apple-system, BlinkMacSystemFont, Arial';
+  // Заголовок
   ctx.textAlign = 'center';
-  ctx.fillText('👑', 540, 200);
-
   ctx.fillStyle = '#d29922';
   ctx.font = 'bold 54px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.fillText('СЕРТИФИКАТ ПРИВИЛЕГИЙ', 540, 290);
+  ctx.fillText('СЕРТИФИКАТ ПРИВИЛЕГИЙ', 540, 270);
 
   ctx.fillStyle = '#f0f6fc';
-  ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.fillText('В ЧЕСТЬ 27-ЛЕТИЯ ЛЮБИМОЙ', 540, 360);
+  ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText('В ЧЕСТЬ 27-ЛЕТИЯ ЛЮБИМОЙ', 540, 340);
 
   ctx.strokeStyle = '#30363d';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(140, 420);
-  ctx.lineTo(940, 420);
+  ctx.moveTo(140, 400);
+  ctx.lineTo(940, 400);
   ctx.stroke();
 
-  // Список 5 карт и привилегий
-  let startY = 530;
+  // Функция рисования скругленного прямоугольника
+  function drawRoundedCard(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fillStyle = '#1c2128';
+    ctx.fill();
+    ctx.strokeStyle = '#30363d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Отрисовка всех 5 карточек
+  let startY = 460;
   savedCards.forEach((code, i) => {
     const r = code.slice(0, -1);
     const s = code.slice(-1);
@@ -909,51 +926,46 @@ function generateCertificate() {
     const suitName = suitObj ? suitObj.name : "";
     const desc = PRIVILEGES_DB[code] || "Персональное желание";
 
-    // Подложка карточки
-    ctx.fillStyle = '#1f242c';
-    ctx.roundRect(120, startY - 50, 840, 170, 20);
-    ctx.fill();
-    ctx.strokeStyle = '#30363d';
-    ctx.stroke();
+    // 1. Рисуем плашку
+    drawRoundedCard(120, startY, 840, 180, 20);
 
-    // Заголовок карты
+    // 2. Заголовок карточки
     ctx.textAlign = 'left';
     ctx.fillStyle = '#58a6ff';
-    ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, Arial';
-    ctx.fillText(`${i + 1}. [${r} ${suitName}]`, 150, startY);
+    ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, Arial';
+    ctx.fillText(`${i + 1}. [${r} ${suitName}]`, 160, startY + 65);
 
-    // Описание
+    // 3. Описание карточки
     ctx.fillStyle = '#f0f6fc';
     ctx.font = '30px -apple-system, BlinkMacSystemFont, Arial';
     
-    // Перенос длинного текста
-    if (desc.length > 42) {
-      ctx.fillText(desc.substring(0, 40) + '...', 150, startY + 55);
+    if (desc.length > 40) {
+      ctx.fillText(desc.substring(0, 38) + '...', 160, startY + 125);
     } else {
-      ctx.fillText(desc, 150, startY + 55);
+      ctx.fillText(desc, 160, startY + 125);
     }
 
-    startY += 210;
+    startY += 225;
   });
 
   // Нижний блок: Печать и Подпись
   ctx.strokeStyle = '#d29922';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(300, 1680, 80, 0, Math.PI * 2);
+  ctx.arc(300, 1690, 80, 0, Math.PI * 2);
   ctx.stroke();
   
   ctx.fillStyle = '#d29922';
   ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('ГАРАНТИЯ', 300, 1670);
-  ctx.fillText('МУЖА ❤️', 300, 1700);
+  ctx.fillText('ГАРАНТИЯ', 300, 1680);
+  ctx.fillText('МУЖА ❤️', 300, 1710);
 
   ctx.fillStyle = '#8b949e';
   ctx.font = '26px -apple-system, BlinkMacSystemFont, Arial';
   ctx.textAlign = 'right';
-  ctx.fillText('Действителен бессрочно', 940, 1670);
-  ctx.fillText('Квест «Код 27» • 25.08.2026', 940, 1715);
+  ctx.fillText('Действителен бессрочно', 940, 1680);
+  ctx.fillText('Квест «Код 27» • 25.08.2026', 940, 1720);
 
   // Конвертация в изображение
   canvas.toBlob(blob => {
