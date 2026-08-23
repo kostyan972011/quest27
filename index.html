@@ -300,7 +300,7 @@
   <!-- Холст генерации сертификата -->
   <canvas id="certCanvas" width="1080" height="1920" style="display:none;"></canvas>
 
-  <div class="footer-note">Quest 27 • Full Certificate Edition</div>
+  <div class="footer-note">Quest 27 • Pure Certificate Edition</div>
 
 <script>
 const POINTS = [
@@ -369,7 +369,7 @@ const PRIVILEGES_DB = {
   "JH": "Спа-вечер: муж наносит маску, делает массаж лица и подает чай",
   "QH": "Экспресс-массаж по первому требованию (10 минут)",
   "KH": "Мытье и бережная сушка волос феном от мужа",
-  "AH": "🌟 СУПЕР-КАРТА: Поход на профессиональный массаж в спа-салон",
+  "AH": "🌟 СУПЕР-ПРИВИЛЕГИЯ: Поход на профессиональный массаж в спа-салон",
 
   "6D": "Кофе / чай в постель в любой выбранный выходной",
   "7D": "Срочный рейс мужа за вкусняшкой в магазин в любое время суток",
@@ -379,7 +379,7 @@ const PRIVILEGES_DB = {
   "JD": "Сладкий безлимит: покупка любого торта или десерта",
   "QD": "«Я не знаю, что хочу»: муж сам придумывает и заказывает ужин",
   "KD": "Романтический ужин в ресторане (локация на твой выбор)",
-  "AD": "🌟 СУПЕР-КАРТА: Читмил-день со всеми любимыми вредностями и кино",
+  "AD": "🌟 СУПЕР-ПРИВИЛЕГИЯ: Читмил-день со всеми любимыми вредностями и кино",
 
   "6C": "Полный иммунитет от мытья посуды на 3 дня подряд",
   "7C": "Генеральная влажная уборка всей квартиры силами мужа",
@@ -389,17 +389,17 @@ const PRIVILEGES_DB = {
   "JC": "Освобождение от походов по магазинам (муж закупает по списку)",
   "QC": "Вечер девичника: квартира в твоем полном распоряжении",
   "KC": "Муж переносит и собирает любые тяжелые вещи без вздохов",
-  "AC": "🌟 СУПЕР-КАРТА: Выходные абсолютной свободы от домашних дел",
+  "AC": "🌟 СУПЕР-ПРИВИЛЕГИЯ: Выходные абсолютной свободы от домашних дел",
 
   "6S": "Право единоличного выбора фильма/сериала на вечер",
   "7S": "Спонтанная вечерняя поездка на электровелосипедах",
-  "8S": "Карта «Ты права»: мгновенная капитуляция мужа в споре",
+  "8S": "Право «Ты права»: мгновенная капитуляция мужа в споре",
   "9S": "Терпеливая фотосессия: 30 минут лучших кадров для контента",
-  "10S": "Карта «На ручки»: порция тепла, обнимашек и заботы",
+  "10S": "Привилегия «На ручки»: порция тепла, обнимашек и заботы",
   "JS": "Музыкальный диджей: в поездках играет только твой плейлист",
   "QS": "Свидание-сюрприз: программа и организация полностью на муже",
   "KS": "Поездка выходного дня в загородный отель или мини-тур",
-  "AS": "👑 ДЖОКЕР: Любое разумное желание по первому требованию"
+  "AS": "👑 СУПЕР-ЖЕЛАНИЕ: Любое разумное желание по первому требованию"
 };
 
 const CARD_RANKS = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"];
@@ -768,18 +768,14 @@ function renderPrivilegesScreen(userCards) {
   list.innerHTML = "";
   
   userCards.forEach((code, idx) => {
-    const r = code.slice(0, -1);
-    const s = code.slice(-1);
     const desc = PRIVILEGES_DB[code] || "Персональная привилегия";
-    const suitObj = CARD_SUITS.find(item => item.code === s);
-    const suitName = suitObj ? suitObj.name : "";
     const isChecked = checkedIndices.includes(idx);
 
     list.innerHTML += `
       <div class="card-item ${isChecked ? 'done' : ''}" id="card_box_idx_${idx}">
         <input type="checkbox" id="chk_idx_${idx}" ${isChecked ? 'checked' : ''} onchange="toggleDoneByIndex(${idx})">
         <div>
-          <b class="card-item-title" style="color:#58a6ff;">[${r} ${suitName}]:</b><br>
+          <b class="card-item-title" style="color:#58a6ff;">Привилегия №${idx + 1}:</b><br>
           <span class="card-item-desc">${desc}</span>
         </div>
       </div>`;
@@ -787,13 +783,11 @@ function renderPrivilegesScreen(userCards) {
 
   const otherList = document.getElementById("otherPrivilegesList");
   otherList.innerHTML = "";
+  let otherIdx = 1;
   Object.keys(PRIVILEGES_DB).forEach(key => {
     if (!userCards.includes(key)) {
-      const r = key.slice(0, -1);
-      const s = key.slice(-1);
-      const suitObj = CARD_SUITS.find(item => item.code === s);
-      const suitName = suitObj ? suitObj.name : "";
-      otherList.innerHTML += `<div class="card-item-other"><b>${r} ${suitName}:</b> ${PRIVILEGES_DB[key]}</div>`;
+      otherList.innerHTML += `<div class="card-item-other"><b>Привилегия:</b> ${PRIVILEGES_DB[key]}</div>`;
+      otherIdx++;
     }
   });
 
@@ -854,7 +848,7 @@ function showPrescriptionScreen() {
   document.getElementById("stepBadge").innerText = "Назначение";
 }
 
-// Генератор Премиального Сертификата (Гарантированная отрисовка всех 5 карточек)
+// Генератор Премиального Сертификата без упоминания карт
 function generateCertificate() {
   triggerHaptic("success");
   fireConfetti();
@@ -897,7 +891,6 @@ function generateCertificate() {
   ctx.lineTo(940, 400);
   ctx.stroke();
 
-  // Функция рисования скругленного прямоугольника
   function drawRoundedCard(x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -917,25 +910,21 @@ function generateCertificate() {
     ctx.stroke();
   }
 
-  // Отрисовка всех 5 карточек
+  // Отрисовка всех 5 карточек (БЕЗ МАСТЕЙ И КАРТ)
   let startY = 460;
   savedCards.forEach((code, i) => {
-    const r = code.slice(0, -1);
-    const s = code.slice(-1);
-    const suitObj = CARD_SUITS.find(item => item.code === s);
-    const suitName = suitObj ? suitObj.name : "";
     const desc = PRIVILEGES_DB[code] || "Персональное желание";
 
-    // 1. Рисуем плашку
+    // Плашка
     drawRoundedCard(120, startY, 840, 180, 20);
 
-    // 2. Заголовок карточки
+    // Номер привилегии
     ctx.textAlign = 'left';
     ctx.fillStyle = '#58a6ff';
     ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, Arial';
-    ctx.fillText(`${i + 1}. [${r} ${suitName}]`, 160, startY + 65);
+    ctx.fillText(`Привилегия №${i + 1}`, 160, startY + 65);
 
-    // 3. Описание карточки
+    // Описание
     ctx.fillStyle = '#f0f6fc';
     ctx.font = '30px -apple-system, BlinkMacSystemFont, Arial';
     
@@ -948,7 +937,7 @@ function generateCertificate() {
     startY += 225;
   });
 
-  // Нижний блок: Печать и Подпись
+  // Печать и подпись
   ctx.strokeStyle = '#d29922';
   ctx.lineWidth = 4;
   ctx.beginPath();
