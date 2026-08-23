@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#0d1117">
 <title>Код 27</title>
 
-<!-- Карта OpenStreetMap / Leaflet -->
+<!-- Карта Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -59,7 +59,7 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
   }
 
-  /* НАВИГАЦИОННАЯ ПАНЕЛЬ МАНЕВРА */
+  /* ПАНЕЛЬ МАНЕВРА */
   .turn-hud {
     background: #005aa9;
     border-radius: 14px;
@@ -96,7 +96,7 @@
     margin-top: 2px;
   }
 
-  /* КАРТА ТЕКУЩЕГО УЧАСТКА */
+  /* КАРТА */
   #map {
     width: 100%;
     height: 270px;
@@ -143,25 +143,24 @@
     <div id="stepBadge" class="badge-step">Секретная цель 1 из 6</div>
   </div>
 
-  <!-- ЭКРАН 1: НАВИГАТОР ПОШАГОВОГО ХОДА -->
+  <!-- ЭКРАН 1: НАВИГАЦИЯ -->
   <div id="screenNavigation" class="card">
     
     <!-- Панель маневра -->
     <div class="turn-hud">
       <div id="turnSvg" class="turn-svg-box">
-        <!-- SVG Стрелка Straight -->
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
       </div>
       <div class="turn-info">
         <div id="turnDist" class="turn-dist">--- м</div>
-        <div id="turnAction" class="turn-action">Двигайтесь прямо</div>
+        <div id="turnAction" class="turn-action">Построение пути...</div>
       </div>
     </div>
 
-    <!-- Карта локального отрезка -->
+    <!-- Карта с уличной линией -->
     <div id="map"></div>
     
-    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin-bottom:6px;">Поиск спутников GPS...</div>
+    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin-bottom:6px;">Спутники GPS активны</div>
     <button class="btn btn-primary" style="padding:10px; font-size:13px;" onclick="enableAudio()">🔊 Включить голосовой гид</button>
     <button class="btn btn-bypass" onclick="forceArrival()">📍 Я на месте (GPS-обход)</button>
   </div>
@@ -227,7 +226,7 @@
     <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:8px;">С днем рождения, любимая! ❤️</div>
   </div>
 
-  <div class="footer-note">Quest 27 • Tactical Turn-by-Turn</div>
+  <div class="footer-note">Quest 27 • Road Routing Engine</div>
 
 <script>
 const POINTS = [
@@ -335,11 +334,10 @@ let currentStep = 0;
 let userCoords = null;
 let map = null;
 let userMarker = null;
-let localPathLine = null;
-let userHeading = 0;
-let lastSpokenAction = "";
+let roadPolyline = null;
+let lastSpoken = "";
+let lastFetchTime = 0;
 
-// Иконки поворотов
 const SVG_ICONS = {
   straight: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>',
   left: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 19v-6a4 4 0 0 0-4-4H5"></path><polyline points="10 4 5 9 10 14"></polyline></svg>',
@@ -364,7 +362,8 @@ function initMap() {
 }
 
 function speak(text) {
-  if ('speechSynthesis' in window) {
+  if ('speechSynthesis' in window && text !== lastSpoken) {
+    lastSpoken = text;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ru-RU';
@@ -374,7 +373,7 @@ function speak(text) {
 }
 
 function enableAudio() {
-  speak("Навигатор активирован. Следуйте указаниям поворотов.");
+  speak("Навигатор активирован. Маршрут строится по дорогам.");
 }
 
 function getDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -387,71 +386,86 @@ function getDistanceMeters(lat1, lon1, lat2, lon2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
-function getBearing(lat1, lon1, lat2, lon2) {
-  const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
-  const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
-            Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
-  let brng = Math.atan2(y, x) * 180 / Math.PI;
-  return (brng + 360) % 360;
-}
-
-function updateNavigation() {
+// Запрос реальной дорожной сети через OSRM
+async function updateRoadNavigation() {
   if (!userCoords || currentStep >= POINTS.length) return;
   const target = POINTS[currentStep];
   const dTotal = getDistanceMeters(userCoords.lat, userCoords.lon, target.lat, target.lon);
 
-  // Центрируем карту только вокруг текущего положения
   if (map && userMarker) {
     userMarker.setLatLng([userCoords.lat, userCoords.lon]);
     map.panTo([userCoords.lat, userCoords.lon], { animate: true, duration: 0.5 });
   }
 
-  // Прибытие на точку
   if (dTotal <= 35) {
     showQuestionScreen();
     return;
   }
 
-  // Расчет короткого пути (100 метров вперед) для отображения линии
-  const targetBearing = getBearing(userCoords.lat, userCoords.lon, target.lat, target.lon);
-  const forwardLat = userCoords.lat + (Math.cos(targetBearing * Math.PI / 180) * 0.001);
-  const forwardLon = userCoords.lon + (Math.sin(targetBearing * Math.PI / 180) * 0.0016);
+  const now = Date.now();
+  if (now - lastFetchTime < 3500) return;
+  lastFetchTime = now;
 
-  if (map) {
-    if (localPathLine) map.removeLayer(localPathLine);
-    localPathLine = L.polyline([[userCoords.lat, userCoords.lon], [forwardLat, forwardLon]], {
-      color: '#e30613', weight: 5, opacity: 0.85, lineCap: 'round'
-    }).addTo(map);
-  }
+  try {
+    const res = await fetch(`https://router.project-osrm.org/route/v1/cycling/${userCoords.lon},${userCoords.lat};${target.lon},${target.lat}?overview=full&geometries=geojson&steps=true`);
+    const data = await res.json();
+    
+    if (data.routes && data.routes.length > 0) {
+      const route = data.routes[0];
+      const coords = route.geometry.coordinates; // [lon, lat]
+      const steps = route.legs[0].steps;
 
-  // Расчет угла маневра
-  let relAngle = (targetBearing - userHeading + 360) % 360;
+      // Отрезаем линию дорог ровно на 120 метров вперед от нас (чтобы не показывать весь маршрут)
+      let shortPath = [[userCoords.lat, userCoords.lon]];
+      let accumDist = 0;
+      for (let i = 0; i < coords.length - 1; i++) {
+        let p1 = coords[i];
+        let p2 = coords[i+1];
+        let segDist = getDistanceMeters(p1[1], p1[0], p2[1], p2[0]);
+        accumDist += segDist;
+        shortPath.push([p2[1], p2[0]]);
+        if (accumDist >= 120) break;
+      }
 
-  // Дистанция до маневра (показываем 50-150м до ближайшего действия)
-  let distToManeuver = dTotal > 150 ? Math.min(120, Math.round(dTotal % 120 + 30)) : dTotal;
+      if (map) {
+        if (roadPolyline) map.removeLayer(roadPolyline);
+        roadPolyline = L.polyline(shortPath, {
+          color: '#e30613', weight: 6, opacity: 0.9, lineCap: 'round', lineJoin: 'round'
+        }).addTo(map);
+      }
 
-  let iconSvg = SVG_ICONS.straight;
-  let actionText = "Двигайтесь прямо";
+      // Определяем ближайший маневр
+      let nextStep = steps.length > 1 ? steps[1] : steps[0];
+      let distToTurn = Math.round(steps[0].distance);
+      let modifier = (nextStep.maneuver && nextStep.maneuver.modifier) || "straight";
+      let street = nextStep.name ? `на ${nextStep.name}` : "";
 
-  if (relAngle > 35 && relAngle <= 145) {
-    iconSvg = SVG_ICONS.right;
-    actionText = "Поверните направо";
-  } else if (relAngle > 145 && relAngle <= 215) {
-    iconSvg = SVG_ICONS.uturn;
-    actionText = "Развернитесь назад";
-  } else if (relAngle > 215 && relAngle <= 325) {
-    iconSvg = SVG_ICONS.left;
-    actionText = "Поверните налево";
-  }
+      let icon = SVG_ICONS.straight;
+      let actionText = "Двигайтесь прямо";
 
-  document.getElementById("turnSvg").innerHTML = iconSvg;
-  document.getElementById("turnDist").innerText = distToManeuver + " м";
-  document.getElementById("turnAction").innerText = actionText;
+      if (modifier.includes("left")) {
+        icon = SVG_ICONS.left;
+        actionText = `Поверните налево ${street}`;
+      } else if (modifier.includes("right")) {
+        icon = SVG_ICONS.right;
+        actionText = `Поверните направо ${street}`;
+      } else if (modifier.includes("uturn")) {
+        icon = SVG_ICONS.uturn;
+        actionText = "Развернитесь";
+      }
 
-  // Голосовая подсказка при смене маневра
-  if (actionText !== lastSpokenAction && distToManeuver < 100) {
-    speak(`Через ${distToManeuver} метров ${actionText}`);
-    lastSpokenAction = actionText;
+      document.getElementById("turnSvg").innerHTML = icon;
+      document.getElementById("turnDist").innerText = `${distToTurn} м`;
+      document.getElementById("turnAction").innerText = actionText;
+
+      if (distToTurn < 80) {
+        speak(`Через ${distToTurn} метров ${actionText}`);
+      }
+    }
+  } catch (e) {
+    // В случае оффлайна - ведем по направлению
+    document.getElementById("turnDist").innerText = `${dTotal > 150 ? 100 : dTotal} м`;
+    document.getElementById("turnAction").innerText = "Двигайтесь по улице";
   }
 }
 
@@ -461,38 +475,28 @@ function initGPS() {
       (pos) => {
         userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
         document.getElementById("gpsStatus").innerText = `GPS активен (±${Math.round(pos.coords.accuracy)}м)`;
-        if (pos.coords.heading) userHeading = pos.coords.heading;
-        updateNavigation();
+        updateRoadNavigation();
       },
       () => { document.getElementById("gpsStatus").innerText = "Ожидание GPS..."; },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 8000 }
     );
   }
-
-  if (window.DeviceOrientationEvent) {
-    window.addEventListener('deviceorientation', (e) => {
-      let h = e.webkitCompassHeading || (360 - e.alpha);
-      if (h) {
-        userHeading = h;
-        updateNavigation();
-      }
-    });
-  }
 }
 
 function renderStep() {
-  lastSpokenAction = "";
+  lastSpoken = "";
   document.getElementById("stepBadge").innerText = `Секретная цель ${currentStep + 1} из ${POINTS.length}`;
   document.getElementById("turnDist").innerText = "--- м";
-  document.getElementById("turnAction").innerText = "Построение маршрута...";
+  document.getElementById("turnAction").innerText = "Построение дорожного пути...";
   document.getElementById("screenNavigation").classList.remove("hidden");
   document.getElementById("screenQuestion").classList.add("hidden");
   document.getElementById("screenSuccess").classList.add("hidden");
   
   if (map) {
+    if (roadPolyline) map.removeLayer(roadPolyline);
     setTimeout(() => { map.invalidateSize(); }, 200);
   }
-  updateNavigation();
+  updateRoadNavigation();
 }
 
 function forceArrival() { showQuestionScreen(); }
@@ -544,7 +548,7 @@ function nextPoint() {
 }
 
 function showFinalScreen() {
-  speak("Все артефакты собраны! Введите карты привилегий.");
+  speak("Все артефакты собраны! Введите номера карт привилегий.");
   document.getElementById("screenSuccess").classList.add("hidden");
   document.getElementById("screenFinal").classList.remove("hidden");
   document.getElementById("stepBadge").innerText = "Финал";
