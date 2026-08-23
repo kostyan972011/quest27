@@ -313,7 +313,7 @@
       📸 Сделать фото на память в этой точке
       <input type="file" accept="image/*" capture="camera" style="display:none;" onchange="saveMemoryPhoto(event)">
     </label>
-    <div id="photoStatus" style="font-size:11.5px; color:#3fb950; text-align:center; margin-bottom:6px;" class="hidden">✓ Фото сохранено в фотохронику!</div>
+    <div id="photoStatus" style="font-size:11.5px; color:#3fb950; text-align:center; margin-bottom:6px;" class="hidden">✓ Исходное фото сохранено в медиатеку!</div>
 
     <button id="nextBtn" class="btn btn-success" onclick="nextPoint()">Следующий маршрут ➔</button>
   </div>
@@ -427,7 +427,7 @@ const POINTS = [
     story: "Тот самый холодный ноябрьский вечер 2015 года и встреча, изменившая всё ❤️",
     artifact: "Секретный ингредиент №1 (Бокалы)",
     hint: "Холодный конец ноября 2015 года...",
-    tag: "Первая встреча 2015"
+    tag: "Локация №1 • 2026"
   },
   {
     lat: 57.444934, lon: 42.155086,
@@ -437,7 +437,7 @@ const POINTS = [
     story: "Именно! Те самые яркие новогодние гирлянды и огоньки ✨",
     artifact: "Секретный ингредиент №2 (Ягодная основа)",
     hint: "Они ярко светились разноцветными праздничными огнями...",
-    tag: "Огоньки и гирлянды"
+    tag: "Локация №2 • 2026"
   },
   {
     lat: 57.450475, lon: 42.122070,
@@ -447,7 +447,7 @@ const POINTS = [
     story: "Тот самый незабываемый момент нашей настоящей близости ❤️",
     artifact: "Секретный ингредиент №3 (Лёд и свежесть)",
     hint: "Наша первая настоящая любовь и страсть...",
-    tag: "Настоящая близость"
+    tag: "Локация №3 • 2026"
   },
   {
     lat: 57.446619, lon: 42.117412,
@@ -457,7 +457,7 @@ const POINTS = [
     story: "Легендарное спасение от полиции в веселом состоянии! Твой щит всегда на страже 🚔",
     artifact: "Секретный ингредиент №4 (Секретный градус)",
     hint: "Люди в погонах и состояние безудержного веселья 🚔",
-    tag: "Спасение от полиции"
+    tag: "Локация №4 • 2026"
   },
   {
     lat: 57.458609, lon: 42.107571,
@@ -467,7 +467,7 @@ const POINTS = [
     story: "Тот самый день, подаривший нам нашу прекрасную доченьку! 👶❤️",
     artifact: "Секретный ингредиент №5 (Игристое)",
     hint: "Событие, в результате которого у нас появилась малышка 👶",
-    tag: "День зачатия дочки"
+    tag: "Локация №5 • 2026"
   },
   {
     lat: 57.443025, lon: 42.179298,
@@ -477,7 +477,7 @@ const POINTS = [
     story: "Новое место и новое воспоминание в честь твоих 27 лет!",
     artifact: "Финал: смешивание коктейля!",
     hint: "Напиши любое красивое слово — прямо сейчас создается история!",
-    tag: "Коктейль «Код 27»"
+    tag: "Финал • Коктейль 27"
   }
 ];
 
@@ -580,8 +580,28 @@ function startStatsTicker() {
   }, 1000);
 }
 
-// Сжатие фото перед сохранением в localStorage (обход 5МБ лимита Safari)
-function compressAndSavePhoto(file, callback) {
+// 1. Немедленное сохранение исходного файла на телефон (БЕЗ СЖАТИЯ)
+function saveOriginalFileToDevice(file) {
+  const originalFileName = `Код27_Локация_${currentStep + 1}_Оригинал.jpg`;
+  const originalFile = new File([file], originalFileName, { type: file.type || 'image/jpeg' });
+
+  if (navigator.canShare && navigator.canShare({ files: [originalFile] })) {
+    navigator.share({
+      title: `Фото с квеста Код 27 (Локация №${currentStep + 1})`,
+      files: [originalFile]
+    }).catch(() => {});
+  } else {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file);
+    a.download = originalFileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+}
+
+// 2. Создание легкой копии исключительно для веб-галереи и коллажа
+function createWebThumbnail(file, callback) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const img = new Image();
@@ -603,8 +623,8 @@ function compressAndSavePhoto(file, callback) {
       c.height = h;
       const ctx = c.getContext("2d");
       ctx.drawImage(img, 0, 0, w, h);
-      const compressedDataUrl = c.toDataURL("image/jpeg", 0.75);
-      callback(compressedDataUrl);
+      const thumbnailDataUrl = c.toDataURL("image/jpeg", 0.75);
+      callback(thumbnailDataUrl);
     };
     img.src = e.target.result;
   };
@@ -615,7 +635,11 @@ function saveMemoryPhoto(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  compressAndSavePhoto(file, (compressedBase64) => {
+  // 1. Сохраняем нетронутый оригинал в галерею смартфона
+  saveOriginalFileToDevice(file);
+
+  // 2. Делаем миниатюру для внутреннего хранилища квеста
+  createWebThumbnail(file, (thumbnailBase64) => {
     let photos = [];
     try {
       photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]");
@@ -627,16 +651,14 @@ function saveMemoryPhoto(event) {
     photos = photos.filter(p => p.step !== stepNum);
     photos.push({
       step: stepNum,
-      src: compressedBase64,
+      src: thumbnailBase64,
       tag: (POINTS[currentStep] && POINTS[currentStep].tag) || `Локация №${stepNum}`,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     });
 
     try {
       localStorage.setItem("quest27_photos", JSON.stringify(photos));
-    } catch (err) {
-      console.warn("Storage warning, cleaning oldest photos");
-    }
+    } catch (err) {}
 
     triggerHaptic("success");
     fireConfetti();
@@ -760,7 +782,7 @@ async function renderCollagePoster() {
     ctx.fillStyle = '#24292f';
     ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(p.tag || `Локация №${p.step}`, 0, 225);
+    ctx.fillText(`Локация №${p.step} • 2026`, 0, 225);
 
     ctx.restore();
   }
