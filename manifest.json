@@ -1,0 +1,15 @@
+{
+  "name": "Код 27",
+  "short_name": "Код 27 🎁",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "180x180 512x512",
+      "type": "image/png"
+    }
+  ]
+}
