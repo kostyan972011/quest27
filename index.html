@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#0d1117">
 <title>Код 27</title>
 
-<!-- Подключение интерактивной карты Leaflet -->
+<!-- Карта OpenStreetMap / Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -36,8 +36,8 @@
     flex-direction: column;
     justify-content: space-between;
   }
-  .header { text-align: center; padding: 10px 0 4px 0; }
-  .header h1 { margin: 0; font-size: 20px; letter-spacing: 1px; color: var(--text); font-weight: 800; }
+  .header { text-align: center; padding: 6px 0; }
+  .header h1 { margin: 0; font-size: 19px; letter-spacing: 1px; color: var(--text); font-weight: 800; }
   .header h1 span { color: var(--accent); }
   .badge-step {
     display: inline-block;
@@ -47,39 +47,67 @@
     font-weight: 700;
     padding: 3px 8px;
     border-radius: 12px;
-    margin-top: 4px;
+    margin-top: 3px;
     text-transform: uppercase;
   }
   .card {
     background: var(--card-bg);
     border: 1px solid #30363d;
     border-radius: 16px;
-    padding: 16px;
-    margin: 8px 0;
+    padding: 14px;
+    margin: 6px 0;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
   }
 
-  /* ВСТРОЕННАЯ КАРТА */
+  /* БЛОК МАНЕВРА КАК В НАВИГАТОРЕ */
+  .turn-hud {
+    background: #005aa9;
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #fff;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0, 90, 169, 0.4);
+  }
+  .turn-icon {
+    font-size: 40px;
+    line-height: 1;
+    min-width: 44px;
+    text-align: center;
+  }
+  .turn-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .turn-dist {
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+  .turn-action {
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.9;
+  }
+
+  /* ЛОКАЛЬНАЯ КАРТА БЕЗ КОНЕЧНОЙ ТОЧКИ */
   #map {
     width: 100%;
-    height: 240px;
+    height: 250px;
     border-radius: 12px;
     border: 1px solid #30363d;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     z-index: 1;
   }
 
-  .distance-box { text-align: center; margin: 4px 0; }
-  .distance-val { font-size: 38px; font-weight: 900; color: #58a6ff; font-variant-numeric: tabular-nums; }
-  .distance-label { font-size: 13px; color: var(--text-dim); }
   .q-title { font-size: 16px; font-weight: 700; line-height: 1.4; margin-bottom: 12px; }
-  
   input[type="text"], input[type="date"] {
     width: 100%; background: #0d1117; border: 1.5px solid #30363d;
     color: #fff; padding: 12px 14px; font-size: 16px; border-radius: 10px; margin-bottom: 12px; outline: none;
   }
   input:focus { border-color: #58a6ff; }
-  
   .btn {
     display: block; width: 100%; background: var(--primary); color: #fff; border: none;
     padding: 13px; font-size: 14px; font-weight: 700; border-radius: 12px; cursor: pointer; text-align: center;
@@ -87,7 +115,6 @@
   .btn:active { transform: scale(0.98); opacity: 0.9; }
   .btn-accent { background: var(--accent); }
   .btn-success { background: var(--success); }
-  .btn-yandex { background: #fc3f1d; color: #fff; margin-bottom: 8px; }
   .btn-bypass { background: transparent; color: var(--text-dim); border: 1px dashed #30363d; font-size: 11px; padding: 6px; margin-top: 8px; border-radius: 8px; }
   .artifact-alert {
     background: rgba(35, 134, 54, 0.15); border: 1px solid var(--success); border-radius: 12px;
@@ -102,30 +129,33 @@
     background: #0d1117; border-left: 4px solid var(--accent); padding: 10px 12px;
     margin-bottom: 8px; border-radius: 6px; font-size: 13px;
   }
-  .footer-note { font-size: 10px; text-align: center; color: var(--text-dim); padding-bottom: 8px; }
+  .footer-note { font-size: 10px; text-align: center; color: var(--text-dim); padding-bottom: 6px; }
 </style>
 </head>
 <body>
 
   <div class="header">
     <h1>КОД <span>27</span></h1>
-    <div id="stepBadge" class="badge-step">Секретная точка 1 из 6</div>
+    <div id="stepBadge" class="badge-step">Секретная цель 1 из 6</div>
   </div>
 
-  <!-- ЭКРАН 1: ИНТЕРАКТИВНАЯ КАРТА И НАВИГАЦИЯ -->
+  <!-- ЭКРАН 1: ПОШАГОВЫЙ НАВИГАТОР -->
   <div id="screenNavigation" class="card">
     
-    <!-- Интерактивная карта -->
-    <div id="map"></div>
-
-    <div class="distance-box">
-      <div id="distVal" class="distance-val">---</div>
-      <div class="distance-label">метров до секретной локации</div>
+    <!-- Панель маневра -->
+    <div class="turn-hud">
+      <div id="turnIcon" class="turn-icon">⬆</div>
+      <div class="turn-info">
+        <div id="turnDist" class="turn-dist">--- м</div>
+        <div id="turnAction" class="turn-action">Определение маршрута...</div>
+      </div>
     </div>
+
+    <!-- Карта с обзором вокруг себя (конечная точка скрыта) -->
+    <div id="map"></div>
     
-    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin: 6px 0 10px 0;">Определение геопозиции...</div>
-    
-    <button class="btn btn-yandex" onclick="openInYandexMaps()">🗺 Открыть в Яндекс Картах</button>
+    <div id="gpsStatus" style="font-size:11px; text-align:center; color:#8b949e; margin-bottom:6px;">Поиск GPS...</div>
+    <button class="btn btn-primary" style="padding:10px; font-size:13px;" onclick="enableAudio()">🔊 Включить голос навигатора</button>
     <button class="btn btn-bypass" onclick="forceArrival()">📍 Я на месте (GPS-обход)</button>
   </div>
 
@@ -146,7 +176,7 @@
       1. Вытяни <b>1 карту привилегий</b> из колоды у мужа!<br>
       2. Забери <b id="artifactName">Артефакт</b> в рюкзак.
     </div>
-    <button id="nextBtn" class="btn btn-success" onclick="nextPoint()">Следующая точка ➔</button>
+    <button id="nextBtn" class="btn btn-success" onclick="nextPoint()">Следующий маршрут ➔</button>
   </div>
 
   <!-- ЭКРАН 4: ФИНАЛ: ВВОД КАРТ -->
@@ -190,7 +220,7 @@
     <div style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:8px;">С днем рождения, любимая! ❤️</div>
   </div>
 
-  <div class="footer-note">Quest 27 • Live Map Edition</div>
+  <div class="footer-note">Quest 27 • Stealth GPS Engine</div>
 
 <script>
 const POINTS = [
@@ -199,7 +229,7 @@ const POINTS = [
     question: "Какая памятная дата и год навсегда связали нас с этим местом?",
     type: "date",
     val: ["2015-11-26", "2015-11-27", "2015-11-28", "26.11.2015", "27.11.2015", "28.11.2015"],
-    story: "Тот самый холодный ноябрьский вечер 2015 года и встреча, изменившая всю нашу жизнь ❤️",
+    story: "Тот самый холодный ноябрьский вечер 2015 года и встреча, изменившая всё ❤️",
     artifact: "Секретный ингредиент №1 (Бокалы)"
   },
   {
@@ -298,26 +328,37 @@ let currentStep = 0;
 let userCoords = null;
 let map = null;
 let userMarker = null;
-let targetMarker = null;
-let routeLine = null;
+let userHeading = 0;
+let lastSpokenDist = 99999;
 
 function initMap() {
-  const initialLat = POINTS[0].lat;
-  const initialLon = POINTS[0].lon;
+  map = L.map('map', { zoomControl: false, attributionControl: false }).setView([57.45, 42.12], 16);
   
-  map = L.map('map', { zoomControl: false }).setView([initialLat, initialLon], 14);
-  
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19
   }).addTo(map);
 
-  targetMarker = L.marker([initialLat, initialLon]).addTo(map);
+  userMarker = L.circleMarker([57.45, 42.12], {
+    color: '#ffffff',
+    fillColor: '#005aa9',
+    fillOpacity: 1,
+    radius: 9,
+    weight: 3
+  }).addTo(map);
 }
 
-function openInYandexMaps() {
-  const target = POINTS[currentStep];
-  const url = `https://yandex.ru/maps/?rtext=~${target.lat},${target.lon}&rtt=bc`;
-  window.open(url, '_blank');
+function speak(text) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ru-RU';
+    u.rate = 1.0;
+    window.speechSynthesis.speak(u);
+  }
+}
+
+function enableAudio() {
+  speak("Навигатор активирован. Двигайтесь по подсказкам.");
 }
 
 function getDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -330,36 +371,64 @@ function getDistanceMeters(lat1, lon1, lat2, lon2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
+function getBearing(lat1, lon1, lat2, lon2) {
+  const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
+  const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+            Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
+  let brng = Math.atan2(y, x) * 180 / Math.PI;
+  return (brng + 360) % 360;
+}
+
 function updateNavigation() {
   if (!userCoords || currentStep >= POINTS.length) return;
   const target = POINTS[currentStep];
   const d = getDistanceMeters(userCoords.lat, userCoords.lon, target.lat, target.lon);
-  document.getElementById("distVal").innerText = d;
 
-  if (d <= 40) {
+  // Центрируем карту строго на человеке (конечная точка за кадром)
+  if (map && userMarker) {
+    userMarker.setLatLng([userCoords.lat, userCoords.lon]);
+    map.panTo([userCoords.lat, userCoords.lon], { animate: true, duration: 0.5 });
+  }
+
+  // Прибытие
+  if (d <= 35) {
     showQuestionScreen();
     return;
   }
 
-  // Обновление карты
-  if (map) {
-    if (!userMarker) {
-      userMarker = L.circleMarker([userCoords.lat, userCoords.lon], {
-        color: '#005aa9', fillColor: '#58a6ff', fillOpacity: 0.9, radius: 8
-      }).addTo(map);
-    } else {
-      userMarker.setLatLng([userCoords.lat, userCoords.lon]);
-    }
+  // Расчет поворота
+  const targetBearing = getBearing(userCoords.lat, userCoords.lon, target.lat, target.lon);
+  let relAngle = (targetBearing - userHeading + 360) % 360;
 
-    targetMarker.setLatLng([target.lat, target.lon]);
+  let icon = "⬆";
+  let actionText = "Двигайтесь прямо";
+  let voiceText = "";
 
-    if (routeLine) map.removeLayer(routeLine);
-    routeLine = L.polyline([[userCoords.lat, userCoords.lon], [target.lat, target.lon]], {
-      color: '#58a6ff', dashArray: '6, 8', weight: 3
-    }).addTo(map);
+  if (relAngle > 35 && relAngle <= 145) {
+    icon = "⮡";
+    actionText = "Поверните направо";
+    voiceText = "Поверните направо";
+  } else if (relAngle > 145 && relAngle <= 215) {
+    icon = "⮌";
+    actionText = "Развернитесь назад";
+    voiceText = "Развернитесь";
+  } else if (relAngle > 215 && relAngle <= 325) {
+    icon = "⮠";
+    actionText = "Поверните налево";
+    voiceText = "Поверните налево";
+  }
 
-    const group = new L.featureGroup([userMarker, targetMarker]);
-    map.fitBounds(group.getBounds().pad(0.2));
+  document.getElementById("turnIcon").innerText = icon;
+  document.getElementById("turnDist").innerText = d + " м";
+  document.getElementById("turnAction").innerText = actionText;
+
+  // Озвучка каждые 200/500м
+  if (d <= 150 && lastSpokenDist > 150) {
+    speak("Вы приближаетесь к секретной цели. Осталось 150 метров.");
+    lastSpokenDist = d;
+  } else if (d <= 400 && lastSpokenDist > 400) {
+    speak("До цели четыреста метров. " + actionText);
+    lastSpokenDist = d;
   }
 }
 
@@ -368,24 +437,36 @@ function initGPS() {
     navigator.geolocation.watchPosition(
       (pos) => {
         userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-        document.getElementById("gpsStatus").innerText = `GPS активен (точность ±${Math.round(pos.coords.accuracy)}м)`;
+        document.getElementById("gpsStatus").innerText = `GPS активен (±${Math.round(pos.coords.accuracy)}м)`;
+        if (pos.coords.heading) userHeading = pos.coords.heading;
         updateNavigation();
       },
-      () => { document.getElementById("gpsStatus").innerText = "Ожидание разрешения GPS..."; },
+      () => { document.getElementById("gpsStatus").innerText = "Ожидание GPS..."; },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 8000 }
     );
+  }
+
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', (e) => {
+      let h = e.webkitCompassHeading || (360 - e.alpha);
+      if (h) {
+        userHeading = h;
+        updateNavigation();
+      }
+    });
   }
 }
 
 function renderStep() {
+  lastSpokenDist = 99999;
   document.getElementById("stepBadge").innerText = `Секретная цель ${currentStep + 1} из ${POINTS.length}`;
-  document.getElementById("distVal").innerText = "---";
+  document.getElementById("turnDist").innerText = "--- м";
+  document.getElementById("turnAction").innerText = "Расчет направления...";
   document.getElementById("screenNavigation").classList.remove("hidden");
   document.getElementById("screenQuestion").classList.add("hidden");
   document.getElementById("screenSuccess").classList.add("hidden");
   
   if (map) {
-    targetMarker.setLatLng([POINTS[currentStep].lat, POINTS[currentStep].lon]);
     setTimeout(() => { map.invalidateSize(); }, 200);
   }
   updateNavigation();
@@ -395,6 +476,7 @@ function forceArrival() { showQuestionScreen(); }
 
 function showQuestionScreen() {
   const pt = POINTS[currentStep];
+  speak("Вы прибыли на место! Вспомните ответ на вопрос.");
   document.getElementById("screenNavigation").classList.add("hidden");
   document.getElementById("screenQuestion").classList.remove("hidden");
   document.getElementById("qTitle").innerText = pt.question;
@@ -418,6 +500,7 @@ function checkAnswer() {
     ok = pt.val.some(kw => val.includes(kw.toLowerCase()));
   }
   if (ok) {
+    speak("Ответ верный! Тяните карту привилегий.");
     document.getElementById("screenQuestion").classList.add("hidden");
     document.getElementById("screenSuccess").classList.remove("hidden");
     document.getElementById("successStory").innerText = pt.story;
@@ -426,6 +509,7 @@ function checkAnswer() {
       document.getElementById("nextBtn").innerText = "Перейти к финалу ➔";
     }
   } else {
+    speak("Неверно. Подумайте еще раз.");
     document.getElementById("qError").classList.remove("hidden");
   }
 }
@@ -437,6 +521,7 @@ function nextPoint() {
 }
 
 function showFinalScreen() {
+  speak("Все артефакты собраны! Введите карты привилегий.");
   document.getElementById("screenSuccess").classList.add("hidden");
   document.getElementById("screenFinal").classList.remove("hidden");
   document.getElementById("stepBadge").innerText = "Финал";
@@ -498,6 +583,7 @@ function answerAudit(choice) {
     auditIdx++;
     if (auditIdx < AUDIT_QUESTIONS.length) renderAuditQ();
     else {
+      speak("Аттестация сдана на отлично! Заберите ваш рецепт в сумке.");
       document.getElementById("screenAudit").classList.add("hidden");
       document.getElementById("screenPrescription").classList.remove("hidden");
     }
