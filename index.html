@@ -129,10 +129,10 @@
   .card-item {
     background: #0d1117; border-left: 4px solid #3fb950; padding: 12px;
     margin-bottom: 10px; border-radius: 8px; font-size: 13.5px; display: flex; align-items: flex-start; gap: 10px;
-    transition: opacity 0.2s ease;
+    transition: all 0.2s ease;
   }
   .card-item.done {
-    opacity: 0.4; border-left-color: #30363d;
+    opacity: 0.35; border-left-color: #30363d;
   }
   .card-item.done .card-item-title, .card-item.done .card-item-desc {
     text-decoration: line-through;
@@ -643,29 +643,29 @@ function revealPrivileges() {
 }
 
 function renderPrivilegesScreen(userCards) {
-  let doneArray = [];
+  let checkedIndices = [];
   try {
-    const raw = localStorage.getItem("quest27_done_array");
-    doneArray = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(doneArray)) doneArray = [];
+    const raw = localStorage.getItem("quest27_checked_indices");
+    checkedIndices = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(checkedIndices)) checkedIndices = [];
   } catch (e) {
-    doneArray = [];
+    checkedIndices = [];
   }
 
   const list = document.getElementById("privilegesList");
   list.innerHTML = "";
   
-  userCards.forEach((code) => {
+  userCards.forEach((code, idx) => {
     const r = code.slice(0, -1);
     const s = code.slice(-1);
     const desc = PRIVILEGES_DB[code] || "Персональная привилегия";
     const suitObj = CARD_SUITS.find(item => item.code === s);
     const suitName = suitObj ? suitObj.name : "";
-    const isChecked = doneArray.includes(code);
+    const isChecked = checkedIndices.includes(idx);
 
     list.innerHTML += `
-      <div class="card-item ${isChecked ? 'done' : ''}" id="card_box_${code}">
-        <input type="checkbox" id="chk_${code}" ${isChecked ? 'checked' : ''} onchange="toggleDone('${code}')">
+      <div class="card-item ${isChecked ? 'done' : ''}" id="card_box_idx_${idx}">
+        <input type="checkbox" id="chk_idx_${idx}" ${isChecked ? 'checked' : ''} onchange="toggleDoneByIndex(${idx})">
         <div>
           <b class="card-item-title" style="color:#58a6ff;">[${r} ${suitName}]:</b><br>
           <span class="card-item-desc">${desc}</span>
@@ -699,27 +699,27 @@ function renderPrivilegesScreen(userCards) {
   }
 }
 
-function toggleDone(code) {
-  let doneArray = [];
+function toggleDoneByIndex(idx) {
+  let checkedIndices = [];
   try {
-    const raw = localStorage.getItem("quest27_done_array");
-    doneArray = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(doneArray)) doneArray = [];
+    const raw = localStorage.getItem("quest27_checked_indices");
+    checkedIndices = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(checkedIndices)) checkedIndices = [];
   } catch (e) {
-    doneArray = [];
+    checkedIndices = [];
   }
 
-  const chk = document.getElementById(`chk_${code}`);
+  const chk = document.getElementById(`chk_idx_${idx}`);
   if (chk) {
     if (chk.checked) {
-      if (!doneArray.includes(code)) doneArray.push(code);
+      if (!checkedIndices.includes(idx)) checkedIndices.push(idx);
     } else {
-      doneArray = doneArray.filter(item => item !== code);
+      checkedIndices = checkedIndices.filter(i => i !== idx);
     }
     
-    localStorage.setItem("quest27_done_array", JSON.stringify(doneArray));
+    localStorage.setItem("quest27_checked_indices", JSON.stringify(checkedIndices));
 
-    const el = document.getElementById(`card_box_${code}`);
+    const el = document.getElementById(`card_box_idx_${idx}`);
     if (el) {
       if (chk.checked) el.classList.add("done");
       else el.classList.remove("done");
