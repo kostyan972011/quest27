@@ -706,122 +706,44 @@ function openFullPhoto(src) {
   }
 }
 
-// ГЕНЕРАЦИЯ И ОТОБРАЖЕНИЕ КОЛЛАЖА
-async function renderCollagePoster() {
-  triggerHaptic("success");
-  fireConfetti();
-
-  let photos = [];
-  try { photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]"); } catch (e) {}
-
-  if (photos.length === 0) {
-    alert("Сделайте фото на точках, чтобы собрать памятный коллаж!");
-    return;
-  }
-
-  const canvas = document.getElementById("collageCanvas");
-  const ctx = canvas.getContext("2d");
-
-  const grad = ctx.createLinearGradient(0, 0, 1080, 1920);
-  grad.addColorStop(0, '#090d13');
-  grad.addColorStop(0.5, '#161b22');
-  grad.addColorStop(1, '#05070a');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1080, 1920);
-
-  ctx.strokeStyle = '#d29922';
-  ctx.lineWidth = 8;
-  ctx.strokeRect(40, 40, 1000, 1840);
-  ctx.lineWidth = 2;
-  ctx.strokeRect(55, 55, 970, 1810);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#d29922';
-  ctx.font = 'bold 54px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.fillText('ХРОНИКА ПРИКЛЮЧЕНИЯ', 540, 150);
-
-  ctx.fillStyle = '#f0f6fc';
-  ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.fillText('КОД 27 • 25.08.2026', 540, 215);
-
-  ctx.strokeStyle = '#30363d';
-  ctx.lineWidth = 2;
+// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ОТРИСОВКИ ---
+function drawRoundedRect(ctx, x, y, width, height, radius, fill = true, stroke = false) {
   ctx.beginPath();
-  ctx.moveTo(140, 260);
-  ctx.lineTo(940, 260);
-  ctx.stroke();
-
-  const polaroids = [
-    { x: 280, y: 530, angle: -0.10 },
-    { x: 780, y: 500, angle: 0.08 },
-    { x: 300, y: 1000, angle: 0.07 },
-    { x: 800, y: 1040, angle: -0.09 },
-    { x: 310, y: 1510, angle: -0.06 },
-    { x: 790, y: 1530, angle: 0.08 }
-  ];
-
-  const loadImage = (src) => new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.src = src;
-  });
-
-  for (let i = 0; i < Math.min(photos.length, 6); i++) {
-    const p = photos[i];
-    const pos = polaroids[i];
-    const img = await loadImage(p.src);
-
-    ctx.save();
-    ctx.translate(pos.x, pos.y);
-    ctx.rotate(pos.angle);
-
-    ctx.shadowColor = 'rgba(0,0,0,0.65)';
-    ctx.shadowBlur = 24;
-    ctx.shadowOffsetX = 8;
-    ctx.shadowOffsetY = 12;
-
-    ctx.fillStyle = '#f6f8fa';
-    ctx.fillRect(-200, -200, 400, 460);
-
-    ctx.shadowColor = 'transparent';
-    ctx.drawImage(img, -175, -175, 350, 350);
-
-    ctx.fillStyle = '#24292f';
-    ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(`Локация №${p.step} • 2026`, 0, 225);
-
-    ctx.restore();
-  }
-
-  ctx.fillStyle = '#8b949e';
-  ctx.font = '24px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('С любовью и навсегда • Твой муж ❤️', 540, 1835);
-
-  const dataUrl = canvas.toDataURL('image/png');
-  const preview = document.getElementById("collagePreviewImg");
-  preview.src = dataUrl;
-  document.getElementById("collageActionBox").classList.remove("hidden");
-
-  canvas.toBlob(blob => {
-    currentCollageBlob = blob;
-  }, 'image/png');
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
 }
 
-function shareCollageFile() {
-  if (!currentCollageBlob) return;
-  const file = new File([currentCollageBlob], 'Коллаж_Код_27.png', { type: 'image/png' });
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    navigator.share({ title: 'Коллаж Код 27', files: [file] }).catch(() => {});
-  } else {
-    const a = document.createElement('a');
-    a.download = 'Коллаж_Код_27.png';
-    a.href = URL.createObjectURL(currentCollageBlob);
-    a.click();
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  let currentY = y;
+
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > maxWidth && n > 0) {
+      ctx.fillText(line.trim(), x, currentY);
+      line = words[n] + ' ';
+      currentY += lineHeight;
+    } else {
+      line = testLine;
+    }
   }
+  ctx.fillText(line.trim(), x, currentY);
+  return currentY;
 }
 
+// 1. ПРЕМИАЛЬНЫЙ СЕРТИФИКАТ ПРИВИЛЕГИЙ (Stories Edition)
 function generateCertificate() {
   triggerHaptic("success");
   fireConfetti();
@@ -832,94 +754,167 @@ function generateCertificate() {
   const canvas = document.getElementById("certCanvas");
   const ctx = canvas.getContext("2d");
 
-  const grad = ctx.createLinearGradient(0, 0, 1080, 1920);
-  grad.addColorStop(0, '#0d1117');
-  grad.addColorStop(0.5, '#161b22');
-  grad.addColorStop(1, '#090d13');
-  ctx.fillStyle = grad;
+  // Фон: люксовый глубокий графитово-синий градиент
+  const bgGrad = ctx.createLinearGradient(0, 0, 1080, 1920);
+  bgGrad.addColorStop(0, '#0a0d14');
+  bgGrad.addColorStop(0.4, '#121824');
+  bgGrad.addColorStop(1, '#07090e');
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, 1080, 1920);
 
+  // Внутренняя двойная золотая рамка с мягким свечением
+  ctx.save();
+  ctx.shadowColor = 'rgba(210, 153, 34, 0.35)';
+  ctx.shadowBlur = 25;
   ctx.strokeStyle = '#d29922';
-  ctx.lineWidth = 10;
-  ctx.strokeRect(50, 50, 980, 1820);
-  ctx.lineWidth = 3;
-  ctx.strokeRect(70, 70, 940, 1780);
+  ctx.lineWidth = 4;
+  drawRoundedRect(ctx, 40, 40, 1000, 1840, 24, false, true);
+  ctx.restore();
 
-  ctx.textAlign = 'center';
+  ctx.strokeStyle = 'rgba(210, 153, 34, 0.4)';
+  ctx.lineWidth = 1.5;
+  drawRoundedRect(ctx, 52, 52, 976, 1816, 18, false, true);
+
+  // Декоративные уголки
+  const corners = [
+    [65, 65], [1015, 65], [65, 1855], [1015, 1855]
+  ];
   ctx.fillStyle = '#d29922';
-  ctx.font = 'bold 54px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.fillText('СЕРТИФИКАТ ПРИВИЛЕГИЙ', 540, 270);
-
-  ctx.fillStyle = '#f0f6fc';
-  ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.fillText('В ЧЕСТЬ 27-ЛЕТИЯ ЛЮБИМОЙ', 540, 340);
-
-  ctx.strokeStyle = '#30363d';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(140, 400);
-  ctx.lineTo(940, 400);
-  ctx.stroke();
-
-  function drawRoundedCard(x, y, w, h, r) {
+  corners.forEach(([cx, cy]) => {
     ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-    ctx.fillStyle = '#1c2128';
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#30363d';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  let startY = 460;
-  savedCards.forEach((code, i) => {
-    const desc = PRIVILEGES_DB[code] || "Персональное желание";
-
-    drawRoundedCard(120, startY, 840, 180, 20);
-
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#58a6ff';
-    ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, Arial';
-    ctx.fillText(`Привилегия №${i + 1}`, 160, startY + 65);
-
-    ctx.fillStyle = '#f0f6fc';
-    ctx.font = '30px -apple-system, BlinkMacSystemFont, Arial';
-    
-    if (desc.length > 40) {
-      ctx.fillText(desc.substring(0, 38) + '...', 160, startY + 125);
-    } else {
-      ctx.fillText(desc, 160, startY + 125);
-    }
-
-    startY += 225;
   });
 
+  // Верхний бейдж
+  ctx.fillStyle = 'rgba(210, 153, 34, 0.15)';
+  ctx.strokeStyle = 'rgba(210, 153, 34, 0.5)';
+  ctx.lineWidth = 1.5;
+  drawRoundedRect(ctx, 390, 95, 300, 42, 21, true, true);
+
+  ctx.fillStyle = '#e5a93c';
+  ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
+  ctx.textAlign = 'center';
+  ctx.letterSpacing = '3px';
+  ctx.fillText('EXCLUSIVE VIP PASS', 540, 122);
+  ctx.letterSpacing = '0px';
+
+  // Заголовок
+  const goldTextGrad = ctx.createLinearGradient(200, 170, 880, 170);
+  goldTextGrad.addColorStop(0, '#fceabb');
+  goldTextGrad.addColorStop(0.5, '#d29922');
+  goldTextGrad.addColorStop(1, '#f8b500');
+
+  ctx.fillStyle = goldTextGrad;
+  ctx.font = '800 48px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
+  ctx.fillText('СЕРТИФИКАТ ПРИВИЛЕГИЙ', 540, 205);
+
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '600 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
+  ctx.fillText('Специальный выпуск к 27-летию любимой', 540, 248);
+
+  // Декоративная линия под заголовком
+  const lineGrad = ctx.createLinearGradient(200, 275, 880, 275);
+  lineGrad.addColorStop(0, 'transparent');
+  lineGrad.addColorStop(0.5, '#d29922');
+  lineGrad.addColorStop(1, 'transparent');
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(200, 275);
+  ctx.lineTo(880, 275);
+  ctx.stroke();
+
+  // Отрисовка 5 премиум карточек привилегий
+  let startY = 320;
+  const suitSymbols = { 'H': '♥', 'D': '♦', 'C': '♣', 'S': '♠' };
+  const suitColors = { 'H': '#ff4d6d', 'D': '#ff758f', 'C': '#58a6ff', 'S': '#79c0ff' };
+
+  savedCards.forEach((code, i) => {
+    const desc = PRIVILEGES_DB[code] || "Персональное романтическое желание";
+    const rank = code.slice(0, -1);
+    const suit = code.slice(-1);
+    const symbol = suitSymbols[suit] || "★";
+    const symbolColor = suitColors[suit] || "#e5a93c";
+
+    // Стеклянная подложка (Frosted glass card)
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 8;
+    ctx.fillStyle = 'rgba(22, 27, 34, 0.85)';
+    drawRoundedRect(ctx, 90, startY, 900, 195, 20, true, false);
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(88, 166, 255, 0.2)';
+    ctx.lineWidth = 1.5;
+    drawRoundedRect(ctx, 90, startY, 900, 195, 20, false, true);
+
+    // Левый блок с картой / мастью
+    ctx.fillStyle = 'rgba(13, 17, 23, 0.95)';
+    drawRoundedRect(ctx, 115, startY + 22, 110, 150, 14, true, false);
+    ctx.strokeStyle = symbolColor;
+    ctx.lineWidth = 1.5;
+    drawRoundedRect(ctx, 115, startY + 22, 110, 150, 14, false, true);
+
+    // Номинал и символ масти
+    ctx.fillStyle = '#f0f6fc';
+    ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(rank, 170, startY + 75);
+
+    ctx.fillStyle = symbolColor;
+    ctx.font = '36px -apple-system, BlinkMacSystemFont, Arial';
+    ctx.fillText(symbol, 170, startY + 130);
+
+    // Номер привилегии
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#58a6ff';
+    ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, Arial';
+    ctx.fillText(`ПРИВИЛЕГИЯ №${i + 1}`, 250, startY + 60);
+
+    // Описание с переносом
+    ctx.fillStyle = '#f0f6fc';
+    ctx.font = '500 24px -apple-system, BlinkMacSystemFont, Arial';
+    wrapText(ctx, desc, 250, startY + 102, 690, 32);
+
+    startY += 230;
+  });
+
+  // Нижний блок: Золотая круглая печать гарантии мужа
+  ctx.save();
+  ctx.translate(260, 1640);
   ctx.strokeStyle = '#d29922';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(300, 1690, 80, 0, Math.PI * 2);
+  ctx.arc(0, 0, 75, 0, Math.PI * 2);
   ctx.stroke();
-  
+
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, 67, 0, Math.PI * 2);
+  ctx.stroke();
+
   ctx.fillStyle = '#d29922';
-  ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('ГАРАНТИЯ', 300, 1680);
-  ctx.fillText('МУЖА ❤️', 300, 1710);
+  ctx.fillText('БЕССРОЧНАЯ', 0, -20);
+  ctx.font = '800 24px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText('ГАРАНТИЯ', 0, 10);
+  ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText('МУЖА ❤️', 0, 35);
+  ctx.restore();
+
+  // Подпись и дата справа
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#f0f6fc';
+  ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText('Действителен по первому требованию', 970, 1625);
 
   ctx.fillStyle = '#8b949e';
-  ctx.font = '26px -apple-system, BlinkMacSystemFont, Arial';
-  ctx.textAlign = 'right';
-  ctx.fillText('Действителен бессрочно', 940, 1680);
-  ctx.fillText('Квест «Код 27» • 25.08.2026', 940, 1720);
+  ctx.font = '18px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText('Квест «Код 27» • 25 августа 2026', 970, 1660);
+  ctx.fillText('Право активации закреплено за именинницей 👑', 970, 1692);
 
   const dataUrl = canvas.toDataURL('image/png');
   const preview = document.getElementById("certPreviewImg");
@@ -940,6 +935,165 @@ function shareCertFile() {
     const a = document.createElement('a');
     a.download = 'Сертификат_Код_27.png';
     a.href = URL.createObjectURL(currentCertBlob);
+    a.click();
+  }
+}
+
+// 2. ИНСТАГРАМНЫЙ ФОТОКОЛЛАЖ ДНЯ (Polaroid / Magazine Edition)
+async function renderCollagePoster() {
+  triggerHaptic("success");
+  fireConfetti();
+
+  let photos = [];
+  try { photos = JSON.parse(localStorage.getItem("quest27_photos") || "[]"); } catch (e) {}
+
+  if (photos.length === 0) {
+    alert("Сделайте фото на контрольных точках, чтобы собрать памятный коллаж!");
+    return;
+  }
+
+  const canvas = document.getElementById("collageCanvas");
+  const ctx = canvas.getContext("2d");
+
+  // Премиальный текстурированный темный фон
+  const bgGrad = ctx.createLinearGradient(0, 0, 1080, 1920);
+  bgGrad.addColorStop(0, '#090c10');
+  bgGrad.addColorStop(0.5, '#131822');
+  bgGrad.addColorStop(1, '#080a0f');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, 1080, 1920);
+
+  // Элегантная рамка
+  ctx.strokeStyle = 'rgba(210, 153, 34, 0.5)';
+  ctx.lineWidth = 3;
+  drawRoundedRect(ctx, 35, 35, 1010, 1850, 20, false, true);
+
+  // Заголовок в стиле журнального постера
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e5a93c';
+  ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.letterSpacing = '6px';
+  ctx.fillText('MEMORIES & ADVENTURE', 540, 100);
+  ctx.letterSpacing = '0px';
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 52px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText('КОД 27 • ДЕНЬ РОЖДЕНИЯ', 540, 160);
+
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '600 20px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText('Хроника памятного веломаршрута • 25.08.2026', 540, 198);
+
+  // Плашка статистики маршрута
+  const totalDist = (parseFloat(localStorage.getItem("quest27_stat_dist") || "0") / 1000).toFixed(1);
+  const totalKcal = Math.round(totalDist * 28);
+  
+  ctx.fillStyle = 'rgba(22, 27, 34, 0.85)';
+  ctx.strokeStyle = 'rgba(48, 54, 61, 0.8)';
+  ctx.lineWidth = 1.5;
+  drawRoundedRect(ctx, 160, 225, 760, 50, 25, true, true);
+
+  ctx.fillStyle = '#58a6ff';
+  ctx.font = '600 18px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText(`🏁 6 локаций   •   🚴 ${totalDist} км пройдено   •   🔥 ${totalKcal} ккал`, 540, 257);
+
+  // Расположение полароидов с легким динамичным наклоном
+  const polaroidLayout = [
+    { x: 300, y: 550, angle: -0.06 },
+    { x: 780, y: 530, angle: 0.05 },
+    { x: 300, y: 1040, angle: 0.04 },
+    { x: 780, y: 1060, angle: -0.05 },
+    { x: 300, y: 1530, angle: -0.04 },
+    { x: 780, y: 1540, angle: 0.05 }
+  ];
+
+  const loadImage = (src) => new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.src = src;
+  });
+
+  // Отрисовка фото-карточек
+  for (let i = 0; i < Math.min(photos.length, 6); i++) {
+    const p = photos[i];
+    const pos = polaroidLayout[i];
+    const img = await loadImage(p.src);
+
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(pos.angle);
+
+    // Глубокая реалистичная тень
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetX = 6;
+    ctx.shadowOffsetY = 12;
+
+    // Белая полароидная рамка
+    ctx.fillStyle = '#ffffff';
+    drawRoundedRect(ctx, -210, -210, 420, 480, 8, true, false);
+    ctx.shadowColor = 'transparent';
+
+    // Отрисовка фото с пропорциональным заполнением (object-fit: cover)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-190, -190, 380, 380);
+    ctx.clip();
+
+    const aspect = img.width / img.height;
+    let sw, sh, sx, sy;
+    if (aspect > 1) {
+      sh = img.height; sw = img.height;
+      sx = (img.width - sw) / 2; sy = 0;
+    } else {
+      sw = img.width; sh = img.width;
+      sx = 0; sy = (img.height - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, -190, -190, 380, 380);
+    ctx.restore();
+
+    // Декоративный "полупрозрачный скотч" сверху полароида
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.fillRect(-60, -225, 120, 26);
+
+    // Подпись под фото
+    ctx.fillStyle = '#1f2328';
+    ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${p.tag || 'Точка ' + p.step}`, 0, 222);
+
+    ctx.fillStyle = '#656d76';
+    ctx.font = '500 15px -apple-system, BlinkMacSystemFont, Arial';
+    ctx.fillText(`${p.time || ''}`, 0, 248);
+
+    ctx.restore();
+  }
+
+  // Футер
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#d29922';
+  ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, Arial';
+  ctx.fillText('С днем рождения, любимая! Навсегда рядом ❤️', 540, 1845);
+
+  const dataUrl = canvas.toDataURL('image/png');
+  const preview = document.getElementById("collagePreviewImg");
+  preview.src = dataUrl;
+  document.getElementById("collageActionBox").classList.remove("hidden");
+
+  canvas.toBlob(blob => {
+    currentCollageBlob = blob;
+  }, 'image/png');
+}
+
+function shareCollageFile() {
+  if (!currentCollageBlob) return;
+  const file = new File([currentCollageBlob], 'Коллаж_Код_27.png', { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ title: 'Коллаж Код 27', files: [file] }).catch(() => {});
+  } else {
+    const a = document.createElement('a');
+    a.download = 'Коллаж_Код_27.png';
+    a.href = URL.createObjectURL(currentCollageBlob);
     a.click();
   }
 }
